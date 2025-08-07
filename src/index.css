@@ -3,8 +3,7 @@
 @tailwind utilities;
 
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+All colors MUST be HSL. */
 
 @layer base {
   :root {
@@ -35,6 +34,15 @@ All colors MUST be HSL.
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
+
+    /* Extended design tokens */
+    --primary-variant: 255 85% 66%;
+    --primary-glow: 222.2 84% 60%;
+
+    /* Shadows & transitions */
+    --shadow-elegant: 0 10px 30px -10px hsl(var(--primary) / 0.35);
+    --shadow-glow: 0 0 40px hsl(var(--primary-glow) / 0.4);
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
     --radius: 0.5rem;
 
@@ -83,6 +91,14 @@ All colors MUST be HSL.
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
+
+    /* Extended dark tokens */
+    --primary-variant: 255 85% 70%;
+    --primary-glow: 224 76% 60%;
+    --shadow-elegant: 0 10px 30px -10px hsl(var(--primary) / 0.35);
+    --shadow-glow: 0 0 40px hsl(var(--primary-glow) / 0.4);
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
@@ -102,4 +118,45 @@ All colors MUST be HSL.
   body {
     @apply bg-background text-foreground;
   }
+}
+
+@layer utilities {
+  /* Interactive utilities */
+  .story-link {
+    position: relative;
+    display: inline-block;
+  }
+  .story-link::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    height: 2px;
+    background: hsl(var(--primary));
+    transform: scaleX(0);
+    transform-origin: bottom right;
+    transition: transform 300ms ease;
+  }
+  .story-link:hover::after {
+    transform: scaleX(1);
+    transform-origin: bottom left;
+  }
+
+  .hover-scale { transition: transform 200ms ease; }
+  .hover-scale:hover { transform: scale(1.05); }
+
+  .pulse { animation: pulse 2s cubic-bezier(0.4,0,0.6,1) infinite; }
+
+  /* Hero gradient background using tokens */
+  .bg-hero {
+    background-image: linear-gradient(135deg, hsl(var(--secondary)) 0%, hsl(var(--accent)) 35%, hsl(var(--primary)) 100%);
+  }
+
+  /* Burst animation for feature button */
+  @keyframes burst-ring {
+    from { opacity: 0.9; transform: translate(var(--tx), var(--ty)) scale(0.6); }
+    to { opacity: 0; transform: translate(var(--txEnd), var(--tyEnd)) scale(1.2); }
+  }
+  .animate-burst { animation: burst-ring var(--burst-duration,700ms) ease-out forwards; }
 }
