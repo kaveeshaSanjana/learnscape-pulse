@@ -6,13 +6,16 @@ import type {
 } from "@/components/ui/toast"
 
 const TOAST_LIMIT = 1
-const TOAST_REMOVE_DELAY = 1000000
+const TOAST_REMOVE_DELAY = 2000
 
 type ToasterToast = ToastProps & {
   id: string
   title?: React.ReactNode
   description?: React.ReactNode
   action?: ToastActionElement
+  isAttendanceAlert?: boolean
+  imageUrl?: string
+  status?: string
 }
 
 const actionTypes = {
@@ -140,6 +143,19 @@ function dispatch(action: Action) {
 type Toast = Omit<ToasterToast, "id">
 
 function toast({ ...props }: Toast) {
+  // Block only data-loading noise (loaded, fetched, retrieved)
+  // Allow everything else: errors, attendance alerts, and all action messages
+  const titleLower = props.title?.toString().toLowerCase() || '';
+  const descLower = props.description?.toString().toLowerCase() || '';
+  const isDataLoadMessage =
+    titleLower.includes('loaded') || titleLower.includes('fetched') || titleLower.includes('retrieved') ||
+    descLower.includes('loaded') || descLower.includes('fetched') || descLower.includes('retrieved');
+
+  if (!props.isAttendanceAlert && props.variant !== 'destructive' && isDataLoadMessage) {
+    console.log('🚫 Toast blocked (data load):', props.title)
+    return { id: '', dismiss: () => {}, update: () => {} }
+  }
+
   const id = genId()
 
   const update = (props: ToasterToast) =>
@@ -160,6 +176,20 @@ function toast({ ...props }: Toast) {
       },
     },
   })
+
+  // Auto-dismiss attendance alerts after 3 seconds
+  if (props.isAttendanceAlert) {
+    setTimeout(() => {
+      dismiss()
+    }, 3000)
+  }
+
+  // Auto-dismiss all non-error toasts after 2 seconds
+  if (props.variant !== 'destructive' && !props.isAttendanceAlert) {
+    setTimeout(() => {
+      dismiss()
+    }, 2000)
+  }
 
   return {
     id: id,
