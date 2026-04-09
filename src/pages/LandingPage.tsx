@@ -766,7 +766,7 @@ export default function LandingPage() {
               { rank: '🥈', name: 'Kavindu Silva', score: 'A', grade: '2025 O/L', gradient: 'from-slate-300 via-gray-300 to-slate-400', shadow: 'shadow-gray-400/30' },
               { rank: '🥉', name: 'Nethmi Fernando', score: 'A', grade: '2025 A/L', gradient: 'from-orange-400 via-amber-500 to-orange-600', shadow: 'shadow-orange-500/30' },
               { rank: '⭐', name: 'Dilshan Kumara', score: 'A', grade: '2025 O/L', gradient: 'from-blue-400 via-indigo-400 to-blue-500', shadow: 'shadow-blue-500/30' },
-            ].map((student, i) => (
+            ].map((student) => (
               <Reveal key={student.name} delay={i * 0.12} direction="up">
                 <TiltCard>
                   <div className={`relative rounded-3xl overflow-hidden border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] transition-all duration-500`}>
