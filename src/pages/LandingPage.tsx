@@ -451,7 +451,7 @@ export default function LandingPage() {
                 { icon: '🏆', title: 'Results', desc: 'Island-wide top results', color: 'from-amber-500 to-yellow-500' },
                 { icon: '🎯', title: 'Live MCQ', desc: 'Interactive quiz battles', color: 'from-blue-500 to-indigo-600' },
                 { icon: '📝', title: 'Exams', desc: 'Model & past papers', color: 'from-emerald-500 to-green-600' },
-              ].map((badge, i) => (
+              ].map((badge) => (
                 <TiltCard key={badge.title}>
                   <div className="bg-white/[0.03] backdrop-blur-sm border border-white/[0.06] rounded-2xl p-4 sm:p-6 text-center hover:bg-white/[0.06] hover:border-white/10 transition-all duration-500">
                     <div className={`w-14 h-14 sm:w-16 sm:h-16 mx-auto rounded-2xl bg-gradient-to-br ${badge.color} flex items-center justify-center shadow-lg mb-3`}>
@@ -766,8 +766,8 @@ export default function LandingPage() {
               { rank: '🥈', name: 'Kavindu Silva', score: 'A', grade: '2025 O/L', gradient: 'from-slate-300 via-gray-300 to-slate-400', shadow: 'shadow-gray-400/30' },
               { rank: '🥉', name: 'Nethmi Fernando', score: 'A', grade: '2025 A/L', gradient: 'from-orange-400 via-amber-500 to-orange-600', shadow: 'shadow-orange-500/30' },
               { rank: '⭐', name: 'Dilshan Kumara', score: 'A', grade: '2025 O/L', gradient: 'from-blue-400 via-indigo-400 to-blue-500', shadow: 'shadow-blue-500/30' },
-            ].map((student) => (
-              <Reveal key={student.name} delay={i * 0.12} direction="up">
+            ].map((student, idx) => (
+              <Reveal key={student.name} delay={idx * 0.12} direction="up">
                 <TiltCard>
                   <div className={`relative rounded-3xl overflow-hidden border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] transition-all duration-500`}>
                     <div className={`h-1.5 bg-gradient-to-r ${student.gradient}`} />
