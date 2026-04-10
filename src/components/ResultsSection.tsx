@@ -7,12 +7,6 @@ const REVIEWS_CSV_URL =
   "https://docs.google.com/spreadsheets/d/1hlT8eo643lur8Ac1JzX313dm1Pj4MP65Q4eoPPN1lLM/export?format=csv&sheet=Reviews";
 // ──────────────────────────────────────────────────────────────────────────────
 
-const FALLBACK_TESTIMONIALS = [
-  { name: "Kavisha P.", quote: "Thilina sir's teaching style made grammar so easy to understand. Got an A for my A/L English!", rating: 5 },
-  { name: "Nethmi R.", quote: "The spoken English sessions boosted my confidence. Best English class I've ever attended.", rating: 5 },
-  { name: "Dilshan M.", quote: "Notes are amazing and classes are always fun. Highly recommend Eazy English!", rating: 5 },
-];
-
 const results = [
   { year: "2024 A/L", aGrades: 42, bGrades: 85, passRate: "99%" },
   { year: "2023 A/L", aGrades: 38, bGrades: 78, passRate: "98%" },
@@ -75,10 +69,12 @@ const ResultsSection = () => {
         return res.text();
       })
       .then((text) => {
+        // Google returns an HTML error page when the sheet tab doesn't exist
+        if (text.trimStart().startsWith("<")) throw new Error("not csv");
         const parsed = parseReviewsCsv(text);
-        setTestimonials(parsed.length > 0 ? parsed : FALLBACK_TESTIMONIALS);
+        setTestimonials(parsed);
       })
-      .catch(() => setTestimonials(FALLBACK_TESTIMONIALS))
+      .catch(() => setTestimonials([]))
       .finally(() => setLoading(false));
   }, []);
 
@@ -126,56 +122,62 @@ const ResultsSection = () => {
         </div>
 
         {/* Testimonials heading */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="text-center mb-10"
-        >
-          <h3 className="text-2xl font-bold text-foreground">What Students Say</h3>
-        </motion.div>
-
         {/* Loading skeleton */}
         {loading && (
-          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            {[0, 1, 2].map((i) => (
-              <div key={i} className="bg-card border border-border rounded-2xl p-6 animate-pulse">
-                <div className="flex gap-1 mb-3">
-                  {[0,1,2,3,4].map((j) => <div key={j} className="w-4 h-4 rounded bg-muted" />)}
+          <>
+            <div className="text-center mb-10">
+              <div className="h-7 w-48 bg-muted rounded-xl mx-auto animate-pulse" />
+            </div>
+            <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="bg-card border border-border rounded-2xl p-6 animate-pulse">
+                  <div className="flex gap-1 mb-3">
+                    {[0,1,2,3,4].map((j) => <div key={j} className="w-4 h-4 rounded bg-muted" />)}
+                  </div>
+                  <div className="h-3 bg-muted rounded mb-2 w-full" />
+                  <div className="h-3 bg-muted rounded mb-2 w-4/5" />
+                  <div className="h-3 bg-muted rounded w-1/3 mt-4" />
                 </div>
-                <div className="h-3 bg-muted rounded mb-2 w-full" />
-                <div className="h-3 bg-muted rounded mb-2 w-4/5" />
-                <div className="h-3 bg-muted rounded w-1/3 mt-4" />
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          </>
         )}
 
-        {/* Review cards */}
-        {!loading && (
-          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            {testimonials.map((t, i) => (
-              <motion.div
-                key={`${t.name}-${i}`}
-                initial={{ opacity: 0, y: 25 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.08, duration: 0.5 }}
-                className="bg-card border border-border rounded-2xl p-6"
-              >
-                <div className="flex gap-0.5 mb-3">
-                  {Array.from({ length: t.rating }).map((_, j) => (
-                    <Star key={j} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                  ))}
-                  {Array.from({ length: 5 - t.rating }).map((_, j) => (
-                    <Star key={`e-${j}`} className="w-4 h-4 text-muted-foreground/30" />
-                  ))}
-                </div>
-                <p className="text-sm text-muted-foreground mb-4 leading-relaxed italic">"{t.quote}"</p>
-                <p className="text-sm font-bold text-foreground" style={{ fontFamily: 'var(--font-body)' }}>— {t.name}</p>
-              </motion.div>
-            ))}
-          </div>
+        {/* Review cards — only shown when reviews exist in the sheet */}
+        {!loading && testimonials.length > 0 && (
+          <>
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="text-center mb-10"
+            >
+              <h3 className="text-2xl font-bold text-foreground">What Students Say</h3>
+            </motion.div>
+            <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+              {testimonials.map((t, i) => (
+                <motion.div
+                  key={`${t.name}-${i}`}
+                  initial={{ opacity: 0, y: 25 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.08, duration: 0.5 }}
+                  className="bg-card border border-border rounded-2xl p-6"
+                >
+                  <div className="flex gap-0.5 mb-3">
+                    {Array.from({ length: t.rating }).map((_, j) => (
+                      <Star key={j} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                    ))}
+                    {Array.from({ length: 5 - t.rating }).map((_, j) => (
+                      <Star key={`e-${j}`} className="w-4 h-4 text-muted-foreground/30" />
+                    ))}
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-4 leading-relaxed italic">"{t.quote}"</p>
+                  <p className="text-sm font-bold text-foreground" style={{ fontFamily: 'var(--font-body)' }}>— {t.name}</p>
+                </motion.div>
+              ))}
+            </div>
+          </>
         )}
       </div>
     </section>
