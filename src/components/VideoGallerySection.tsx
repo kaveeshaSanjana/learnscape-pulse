@@ -80,23 +80,35 @@ const VideoGallerySection = () => {
   const [paused, setPaused] = useState(false);
 
   useEffect(() => {
-    fetch(SHEET_CSV_URL)
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 10_000);
+
+    fetch(SHEET_CSV_URL, { signal: controller.signal })
       .then((res) => {
         if (!res.ok) throw new Error("fetch failed");
         return res.text();
       })
       .then((text) => {
+        clearTimeout(timer);
         setVideos(parseCsv(text));
         setLoading(false);
       })
       .catch(() => {
+        clearTimeout(timer);
         setError(true);
         setLoading(false);
       });
+
+    return () => { clearTimeout(timer); controller.abort(); };
   }, []);
 
-  // Duplicate for seamless infinite loop
-  const track = videos.length > 0 ? [...videos, ...videos] : [];
+  // Repeat enough copies so the track always overflows the viewport
+  const minItems = 12;
+  const copies = videos.length > 0 ? Math.ceil(minItems / videos.length) + 1 : 0;
+  const baseTrack = videos.length > 0 ? Array.from({ length: copies }, () => videos).flat() : [];
+  // Add one more copy at the end for seamless looping; animate to -1/copies of total
+  const track = [...baseTrack, ...videos];
+  const animPct = videos.length > 0 ? (100 / (copies + 1)).toFixed(4) : "50";
   const durationSec = Math.max(20, videos.length * 8);
 
   return (
@@ -167,8 +179,9 @@ const VideoGallerySection = () => {
           <div
             className="flex gap-5 w-max px-4"
             style={{
-              animation: `scroll-rtl ${durationSec}s linear infinite`,
+              animation: `scroll-rtl-custom ${durationSec}s linear infinite`,
               animationPlayState: paused ? "paused" : "running",
+              ["--scroll-pct" as string]: `-${animPct}%`,
             }}
           >
             {track.map((video, i) => (

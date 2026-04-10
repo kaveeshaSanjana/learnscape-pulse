@@ -5,6 +5,7 @@ import AboutSection from "@/components/AboutSection";
 import ClassesSection from "@/components/ClassesSection";
 import ResultsSection from "@/components/ResultsSection";
 import VideoGallerySection from "@/components/VideoGallerySection";
+import ImageGallerySection from "@/components/ImageGallerySection";
 import Footer from "@/components/Footer";
 import WhatsAppButton from "@/components/WhatsAppButton";
 
@@ -18,6 +19,7 @@ const Index = () => {
       <ClassesSection />
       <ResultsSection />
       <VideoGallerySection />
+      <ImageGallerySection />
       <Footer />
       <WhatsAppButton />
     </div>
