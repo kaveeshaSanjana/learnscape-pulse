@@ -15,7 +15,7 @@ import { Star, Quote } from "lucide-react";
 //   2. File → Share → Publish to web → select "Reviews" tab → CSV → Publish
 //   3. Copy the URL and paste it below.
 const SHEET_CSV_URL =
-  "https://docs.google.com/spreadsheets/d/e/2PACX-1vS-2yuQgo-0SSFVFrQWqKrxoyOWXEk4oTs4lS8R0ix8O_52Jxn3CqwreJuieKEE6K4HrDUHxNAWh2KD/pub?gid=321259135&single=true&output=csv";
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vS-2yuQgo-0SSFVFrQWqKrxoyOWXEk4oTs4lS8R0ix8O_52Jxn3CqwreJuieKEE6K4HrDUHxNAWh2KD/pub?gid=800599048&single=true&output=csv";
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface ReviewItem {

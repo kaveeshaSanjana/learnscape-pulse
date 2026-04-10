@@ -47,7 +47,7 @@ const PostSection = () => (
           className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold text-foreground leading-tight"
           style={{ fontFamily: "var(--font-heading)" }}
         >
-          ඔබත් ඊළඟ සාර්ථක කතාව වෙන්න
+          Be the Next Success Story
         </h2>
       </motion.div>
 
@@ -58,7 +58,7 @@ const PostSection = () => (
         transition={{ duration: 0.5, delay: 0.2 }}
         className="text-center text-muted-foreground text-sm md:text-base mb-12 md:mb-20 max-w-md mx-auto"
       >
-        අදම අප සමඟ එකතු වන්න
+        Join us today
       </motion.p>
 
       {/* MOBILE: Clean vertical stack */}
