@@ -3,12 +3,12 @@ import { BookOpen, Users, GraduationCap, Video, FileText, Mic, ArrowRight } from
 import { useRef } from "react";
 
 const features = [
-  { icon: Video, title: "Live Online Classes", desc: "Interactive sessions with real-time Q&A and discussion.", accent: "213 80% 50%" },
-  { icon: FileText, title: "Structured Notes", desc: "Comprehensive study materials crafted for A/L & O/L syllabi.", accent: "200 90% 55%" },
-  { icon: Users, title: "Small Batch Sizes", desc: "Personalized attention with limited students per class.", accent: "170 80% 45%" },
-  { icon: Mic, title: "Speaking Practice", desc: "Build fluency through guided conversation exercises.", accent: "280 70% 55%" },
-  { icon: GraduationCap, title: "Exam Strategy", desc: "Proven techniques to maximize marks in every paper.", accent: "35 90% 55%" },
-  { icon: BookOpen, title: "Grammar Mastery", desc: "Clear, simplified approach to English grammar rules.", accent: "350 75% 55%" },
+  { icon: Video, title: "සජීවී මාර්ගගත පන්ති", desc: "තත්‍ය කාලීන ප්‍රශ්න සහ සාකච්ඡා සමඟ අන්තර්ක්‍රියාකාරී සැසි.", accent: "213 80% 50%" },
+  { icon: FileText, title: "ව්‍යුහගත සටහන්", desc: "A/L සහ O/L විෂය නිර්දේශ සඳහා සකස් කළ සවිස්තර අධ්‍යයන ද්‍රව්‍ය.", accent: "200 90% 55%" },
+  { icon: Users, title: "කුඩා කණ්ඩායම්", desc: "එක් පන්තියකට සීමිත සිසුන් සමඟ පුද්ගලික අවධානය.", accent: "170 80% 45%" },
+  { icon: Mic, title: "කතා කිරීමේ පුහුණුව", desc: "මඟ පෙන්වීම් සහිත සංවාද අභ්‍යාස තුළින් නිපුණතාව ගොඩ නගන්න.", accent: "280 70% 55%" },
+  { icon: GraduationCap, title: "විභාග උපාය මාර්ග", desc: "සෑම ප්‍රශ්න පත්‍රයකම ලකුණු උපරිම කිරීමේ ඔප්පු කළ ක්‍රම.", accent: "35 90% 55%" },
+  { icon: BookOpen, title: "ව්‍යාකරණ ප්‍රවීණතාව", desc: "ඉංග්‍රීසි ව්‍යාකරණ රීති සඳහා පැහැදිලි, සරල කළ ප්‍රවේශය.", accent: "350 75% 55%" },
 ];
 
 const FeatureCard = ({ feature, index }: { feature: typeof features[0]; index: number }) => {
@@ -71,7 +71,7 @@ const FeatureCard = ({ feature, index }: { feature: typeof features[0]; index: n
                 className="mt-3 flex items-center gap-1.5 text-xs font-semibold opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300"
                 style={{ color: `hsl(${feature.accent})` }}
               >
-                Learn more <ArrowRight className="w-3.5 h-3.5" />
+                තව දැන ගන්න <ArrowRight className="w-3.5 h-3.5" />
               </motion.div>
             </div>
           </div>
@@ -117,7 +117,7 @@ const AboutSection = () => (
         >
           <div className="h-[2px] w-12 bg-primary rounded-full" />
           <p className="text-primary font-semibold text-sm uppercase tracking-widest">
-            Why Choose Us
+            අපව තෝරා ගන්නේ ඇයි
           </p>
         </motion.div>
 
@@ -129,10 +129,10 @@ const AboutSection = () => (
           className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-foreground leading-tight"
           style={{ fontFamily: "var(--font-heading)" }}
         >
-          What Makes Us{" "}
+          අපව{" "}
           <span className="relative inline-block">
             <span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">
-              Different
+              වෙනස්
             </span>
             <motion.span
               initial={{ scaleX: 0 }}
@@ -142,6 +142,7 @@ const AboutSection = () => (
               className="absolute -bottom-1 left-0 right-0 h-3 bg-primary/10 rounded-full origin-left"
             />
           </span>
+          {" "}කරන්නේ කුමක්ද?
         </motion.h2>
       </div>
 

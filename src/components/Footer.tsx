@@ -14,10 +14,16 @@ const Footer = () => (
         </div>
 
         <div className="text-center">
-          <p className="text-primary-foreground/80 text-sm mb-3 font-semibold" style={{ fontFamily: 'var(--font-body)' }}>Quick Links</p>
+          <p className="text-primary-foreground/80 text-sm mb-3 font-semibold" style={{ fontFamily: 'var(--font-body)' }}>ඉක්මන් සබැඳි</p>
           <div className="flex flex-wrap justify-center gap-4 text-sm text-primary-foreground/60">
-            {["Home", "Classes", "Results", "About", "Contact"].map((l) => (
-              <a key={l} href={`#${l.toLowerCase()}`} className="hover:text-primary-foreground transition-colors">{l}</a>
+            {[
+              { label: "මුල් පිටුව", href: "home" },
+              { label: "පන්ති", href: "classes" },
+              { label: "ප්‍රතිඵල", href: "results" },
+              { label: "අපි ගැන", href: "about" },
+              { label: "සම්බන්ධ වන්න", href: "contact" },
+            ].map((l) => (
+              <a key={l.href} href={`#${l.href}`} className="hover:text-primary-foreground transition-colors">{l.label}</a>
             ))}
           </div>
         </div>

@@ -14,7 +14,13 @@ const Navbar = () => {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const links = ["Home", "Classes", "Results", "About", "Contact"];
+  const links = [
+    { label: "මුල් පිටුව", href: "home" },
+    { label: "පන්ති", href: "classes" },
+    { label: "ප්‍රතිඵල", href: "results" },
+    { label: "අපි ගැන", href: "about" },
+    { label: "සම්බන්ධ වන්න", href: "contact" },
+  ];
 
   return (
     <motion.nav

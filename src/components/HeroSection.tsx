@@ -55,7 +55,7 @@ const HeroSection = () => {
             className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6"
           >
             <BookOpen className="w-4 h-4" />
-            A/L & O/L English Excellence
+            A/L & O/L ඉංග්‍රීසි විශිෂ්ටත්වය
           </motion.div>
 
           <motion.h1
@@ -89,7 +89,7 @@ const HeroSection = () => {
             className="text-muted-foreground text-base md:text-lg max-w-lg mx-auto lg:mx-0 leading-relaxed"
             style={{ fontFamily: 'var(--font-body)' }}
           >
-            Master English with confidence. Proven methods, outstanding results, and a learning experience designed to take you beyond the exam.
+            ආත්ම විශ්වාසයෙන් ඉංග්‍රීසි ඉගෙන ගන්න. ඔප්පු කළ ක්‍රම, විශිෂ්ට ප්‍රතිඵල, සහ විභාගයෙන් ඔබ්බට ඔබව ගෙන යන ඉගෙනුම් අත්දැකීමක්.
           </motion.p>
         </div>
 

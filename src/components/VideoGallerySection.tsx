@@ -114,19 +114,19 @@ const VideoGallerySection = () => {
             className="text-primary font-semibold text-sm uppercase tracking-wider mb-2"
             style={{ fontFamily: "var(--font-body)" }}
           >
-            Video Gallery
+            වීඩියෝ ගැලරිය
           </p>
           <h2
             className="text-3xl md:text-4xl font-extrabold text-foreground"
             style={{ fontFamily: "var(--font-heading)" }}
           >
-            Our Latest Sessions
+            අපේ නවතම සැසි
           </h2>
           <p
             className="text-muted-foreground mt-3 text-sm md:text-base max-w-lg mx-auto"
             style={{ fontFamily: "var(--font-body)" }}
           >
-            Watch highlights from our live classes, student achievements and spoken English sessions
+            අපගේ සජීවී පන්ති, සිසු ජයග්‍රහණ සහ කතා ඉංග්‍රීසි සැසි වලින් විශේෂාංග නරඹන්න
           </p>
         </motion.div>
       </div>
@@ -140,13 +140,13 @@ const VideoGallerySection = () => {
 
       {error && (
         <p className="text-center text-muted-foreground py-12">
-          Could not load videos. Please check back later.
+          වීඩියෝ පූරණය කිරීමට නොහැකි විය. කරුණාකර පසුව නැවත උත්සාහ කරන්න.
         </p>
       )}
 
       {!loading && !error && videos.length === 0 && (
         <p className="text-center text-muted-foreground py-12">
-          No videos found. Add rows to your Google Sheet and refresh.
+          වීඩියෝ හමු නොවීය. ඔබගේ Google Sheet එකට පේළි එකතු කර නැවත ලෝඩ් කරන්න.
         </p>
       )}
 
@@ -230,7 +230,7 @@ const VideoGallerySection = () => {
                     <svg className="w-3 h-3" viewBox="0 0 24 24" fill="white">
                       <path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.413c0-3.025 1.791-4.697 4.533-4.697 1.313 0 2.686.236 2.686.236v2.97h-1.513c-1.491 0-1.956.93-1.956 1.886v2.265h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z" />
                     </svg>
-                    Watch on Facebook
+                    Facebook හි නරඹන්න
                   </div>
                 </div>
 
@@ -257,7 +257,7 @@ const VideoGallerySection = () => {
                       className="text-muted-foreground text-xs"
                       style={{ fontFamily: "var(--font-body)" }}
                     >
-                      Click to watch on Facebook
+                      Facebook හි නරඹන්න ක්ලික් කරන්න
                     </p>
                   )}
                 </div>

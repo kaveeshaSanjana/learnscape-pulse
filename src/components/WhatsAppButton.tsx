@@ -15,7 +15,7 @@ const WhatsAppButton = () => (
     style={{ fontFamily: "var(--font-body)" }}
   >
     <MessageCircle className="w-5 h-5" />
-    <span className="text-sm font-semibold hidden sm:inline">Join New Class</span>
+    <span className="text-sm font-semibold hidden sm:inline">නව පන්තියට එකතු වන්න</span>
   </motion.a>
 );
 

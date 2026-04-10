@@ -12,8 +12,8 @@ const ContactSection = () => (
         transition={{ duration: 0.6 }}
         className="text-center mb-14"
       >
-        <p className="text-primary font-semibold text-sm uppercase tracking-wider mb-2" style={{ fontFamily: 'var(--font-body)' }}>Get In Touch</p>
-        <h2 className="text-3xl md:text-4xl font-extrabold text-foreground">Contact Us</h2>
+        <p className="text-primary font-semibold text-sm uppercase tracking-wider mb-2" style={{ fontFamily: 'var(--font-body)' }}>සම්බන්ධ වන්න</p>
+        <h2 className="text-3xl md:text-4xl font-extrabold text-foreground">අප හා සම්බන්ධ වන්න</h2>
       </motion.div>
 
       <div className="grid md:grid-cols-2 gap-10 max-w-4xl mx-auto">
@@ -26,7 +26,7 @@ const ContactSection = () => (
           className="space-y-6"
         >
           <p className="text-muted-foreground leading-relaxed" style={{ fontFamily: 'var(--font-body)' }}>
-            Have questions about our classes? Want to register? Reach out and we'll get back to you right away.
+            අපේ පන්ති ගැන ප්‍රශ්න තිබේද? ලියාපදිංචි වීමට අවශ්‍යද? අප හා සම්බන්ධ වන්න, අපි ඉක්මනින් ඔබට පිළිතුරු දෙන්නම්.
           </p>
           {[
             { icon: Phone, label: "+94 77 123 4567" },
@@ -53,22 +53,22 @@ const ContactSection = () => (
         >
           <input
             type="text"
-            placeholder="Your Name"
+            placeholder="ඔබගේ නම"
             className="w-full px-4 py-3 rounded-xl bg-muted text-foreground text-sm border border-border focus:outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-muted-foreground"
           />
           <input
             type="email"
-            placeholder="Email Address"
+            placeholder="විද්‍යුත් තැපැල් ලිපිනය"
             className="w-full px-4 py-3 rounded-xl bg-muted text-foreground text-sm border border-border focus:outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-muted-foreground"
           />
           <textarea
             rows={4}
-            placeholder="Your Message"
+            placeholder="ඔබගේ පණිවිඩය"
             className="w-full px-4 py-3 rounded-xl bg-muted text-foreground text-sm border border-border focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none placeholder:text-muted-foreground"
           />
           <Button className="w-full gap-2" size="lg">
             <Send className="w-4 h-4" />
-            Send Message
+            පණිවිඩය යවන්න
           </Button>
         </motion.form>
       </div>
