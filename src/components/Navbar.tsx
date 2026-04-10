@@ -71,14 +71,14 @@ const Navbar = () => {
             <div className="flex items-center bg-muted/50 rounded-full px-2 py-1.5 gap-1">
               {links.map((item, i) => (
                 <motion.a
-                  key={item}
-                  href={`#${item.toLowerCase()}`}
+                  key={item.href}
+                  href={`#${item.href}`}
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.4 + i * 0.08 }}
                   className="text-sm font-medium text-muted-foreground hover:text-primary hover:bg-card px-4 py-1.5 rounded-full transition-all duration-200"
                 >
-                  {item}
+                  {item.label}
                 </motion.a>
               ))}
             </div>
@@ -87,10 +87,10 @@ const Navbar = () => {
           {/* Desktop buttons */}
           <div className="hidden md:flex items-center gap-3">
             <Button variant="ghost" size="sm" className="rounded-full">
-              Login
+              පිවිසෙන්න
             </Button>
             <Button size="sm" className="rounded-full px-6">
-              Register
+              ලියාපදිංචි වන්න
             </Button>
           </div>
 
@@ -115,17 +115,17 @@ const Navbar = () => {
           <div className="flex flex-col p-4 gap-1">
             {links.map((item) => (
               <a
-                key={item}
-                href={`#${item.toLowerCase()}`}
+                key={item.href}
+                href={`#${item.href}`}
                 onClick={() => setMobileOpen(false)}
                 className="text-sm font-medium text-muted-foreground hover:text-primary hover:bg-muted px-4 py-3 rounded-xl transition-colors"
               >
-                {item}
+                {item.label}
               </a>
             ))}
             <div className="flex gap-2 mt-3 pt-3 border-t border-border">
-              <Button variant="ghost" size="sm" className="flex-1 rounded-full">Login</Button>
-              <Button size="sm" className="flex-1 rounded-full">Register</Button>
+              <Button variant="ghost" size="sm" className="flex-1 rounded-full">පිවිසෙන්න</Button>
+              <Button size="sm" className="flex-1 rounded-full">ලියාපදිංචි වන්න</Button>
             </div>
           </div>
         </motion.div>
