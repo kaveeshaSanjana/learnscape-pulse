@@ -8,9 +8,9 @@ const REVIEWS_CSV_URL =
 // ──────────────────────────────────────────────────────────────────────────────
 
 const FALLBACK_TESTIMONIALS = [
-  { name: "Kavisha P.", quote: "Thilina sir's teaching style made grammar so easy to understand. Got an A for my A/L English!", rating: 5 },
-  { name: "Nethmi R.", quote: "The spoken English sessions boosted my confidence. Best English class I've ever attended.", rating: 5 },
-  { name: "Dilshan M.", quote: "Notes are amazing and classes are always fun. Highly recommend Eazy English!", rating: 5 },
+  { name: "කවිෂා P.", quote: "තිලින සර්ගේ ඉගැන්වීමේ විලාසය ව්‍යාකරණය තේරුම් ගැනීම ඉතා පහසු කළා. මගේ A/L ඉංග්‍රීසියට A ලැබුණා!", rating: 5 },
+  { name: "නෙත්මි R.", quote: "කතා කිරීමේ ඉංග්‍රීසි සැසි මගේ ආත්ම විශ්වාසය ඉහළ නැංවුවා. මම සහභාගී වූ හොඳම ඉංග්‍රීසි පන්තිය.", rating: 5 },
+  { name: "දිල්ෂාන් M.", quote: "සටහන් පුදුමාකාරයි, පන්ති සැමවිටම විනෝදජනකයි. Eazy English අනිවාර්යයෙන්ම නිර්දේශ කරනවා!", rating: 5 },
 ];
 
 const results = [
@@ -92,8 +92,8 @@ const ResultsSection = () => {
           transition={{ duration: 0.6 }}
           className="text-center mb-14"
         >
-          <p className="text-primary font-semibold text-sm uppercase tracking-wider mb-2" style={{ fontFamily: 'var(--font-body)' }}>Results</p>
-          <h2 className="text-3xl md:text-4xl font-extrabold text-foreground">Proven Track Record</h2>
+          <p className="text-primary font-semibold text-sm uppercase tracking-wider mb-2" style={{ fontFamily: 'var(--font-body)' }}>ප්‍රතිඵල</p>
+          <h2 className="text-3xl md:text-4xl font-extrabold text-foreground">ඔප්පු කළ ජයග්‍රහණ</h2>
         </motion.div>
 
         {/* Results cards */}
@@ -109,16 +109,16 @@ const ResultsSection = () => {
             >
               <p className="text-sm font-semibold text-primary mb-3" style={{ fontFamily: 'var(--font-body)' }}>{r.year}</p>
               <p className="text-4xl font-extrabold text-foreground mb-1">{r.passRate}</p>
-              <p className="text-xs text-muted-foreground mb-4">Pass Rate</p>
+              <p className="text-xs text-muted-foreground mb-4">සමත් අනුපාතය</p>
               <div className="flex justify-center gap-6 text-sm">
                 <div>
                   <p className="font-bold text-foreground">{r.aGrades}</p>
-                  <p className="text-muted-foreground text-xs">A Grades</p>
+                  <p className="text-muted-foreground text-xs">A සාමාර්ථ</p>
                 </div>
                 <div className="w-px bg-border" />
                 <div>
                   <p className="font-bold text-foreground">{r.bGrades}</p>
-                  <p className="text-muted-foreground text-xs">B Grades</p>
+                  <p className="text-muted-foreground text-xs">B සාමාර්ථ</p>
                 </div>
               </div>
             </motion.div>
@@ -132,7 +132,7 @@ const ResultsSection = () => {
           viewport={{ once: true }}
           className="text-center mb-10"
         >
-          <h3 className="text-2xl font-bold text-foreground">What Students Say</h3>
+          <h3 className="text-2xl font-bold text-foreground">සිසුන් කියන දේ</h3>
         </motion.div>
 
         {/* Loading skeleton */}
