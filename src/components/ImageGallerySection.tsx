@@ -149,34 +149,49 @@ const ImageGallerySection = () => {
           </p>
         )}
 
-        {/* Masonry grid */}
+        {/* Dynamic grid */}
         {!loading && !error && images.length > 0 && (
           <motion.div
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
-            className="columns-2 sm:columns-3 md:columns-4 lg:columns-5 gap-2 space-y-2"
+            className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 auto-rows-[180px] sm:auto-rows-[200px] md:auto-rows-[220px]"
           >
-            {images.map((img, i) => (
-              <motion.div
-                key={`${img.url}-${i}`}
-                initial={{ opacity: 0, scale: 0.95 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true, margin: "-30px" }}
-                transition={{ duration: 0.4, delay: Math.min(i * 0.03, 0.5) }}
-                className="break-inside-avoid mb-2 cursor-pointer overflow-hidden rounded-lg group relative"
-                onClick={() => setLightbox(i)}
-              >
-                <img
-                  src={img.url}
-                  alt={img.alt}
-                  loading="lazy"
-                  className="w-full h-auto object-cover block transition-transform duration-300 group-hover:scale-105"
-                />
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-300 rounded-lg" />
-              </motion.div>
-            ))}
+            {images.map((img, i) => {
+              // Create varying sizes: every 5th image is large (2x2), every 3rd is tall (1x2)
+              const isLarge = i % 7 === 0;
+              const isTall = i % 5 === 2;
+              const isWide = i % 6 === 3;
+
+              return (
+                <motion.div
+                  key={`${img.url}-${i}`}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  viewport={{ once: true, margin: "-30px" }}
+                  transition={{ duration: 0.4, delay: Math.min(i * 0.03, 0.5) }}
+                  className={`cursor-pointer overflow-hidden rounded-lg group relative ${
+                    isLarge
+                      ? "col-span-2 row-span-2"
+                      : isTall
+                      ? "row-span-2"
+                      : isWide
+                      ? "col-span-2"
+                      : ""
+                  }`}
+                  onClick={() => setLightbox(i)}
+                >
+                  <img
+                    src={img.url}
+                    alt={img.alt}
+                    loading="lazy"
+                    className="w-full h-full object-cover block transition-transform duration-300 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-300 rounded-lg" />
+                </motion.div>
+              );
+            })}
           </motion.div>
         )}
       </div>

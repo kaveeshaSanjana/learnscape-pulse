@@ -1,164 +1,312 @@
-import { motion, useMotionValue, useTransform } from "framer-motion";
-import { BookOpen, Users, GraduationCap, Video, FileText, Mic, ArrowRight } from "lucide-react";
-import { useRef } from "react";
+import { motion, type Variants } from "framer-motion";
+import { BookOpen, Users, GraduationCap, Video, FileText, Mic, Sparkles } from "lucide-react";
+import { useState } from "react";
 
 const features = [
-  { icon: Video, title: "Live Online Classes", desc: "Interactive sessions with real-time Q&A and discussion.", accent: "213 80% 50%" },
-  { icon: FileText, title: "Structured Notes", desc: "Comprehensive study materials crafted for A/L & O/L syllabi.", accent: "200 90% 55%" },
-  { icon: Users, title: "Small Batch Sizes", desc: "Personalized attention with limited students per class.", accent: "170 80% 45%" },
-  { icon: Mic, title: "Speaking Practice", desc: "Build fluency through guided conversation exercises.", accent: "280 70% 55%" },
-  { icon: GraduationCap, title: "Exam Strategy", desc: "Proven techniques to maximize marks in every paper.", accent: "35 90% 55%" },
-  { icon: BookOpen, title: "Grammar Mastery", desc: "Clear, simplified approach to English grammar rules.", accent: "350 75% 55%" },
+  { icon: Video, title: "Live Online Classes", desc: "Interactive sessions with real-time Q&A and discussion." },
+  { icon: FileText, title: "Structured Notes", desc: "Comprehensive study materials crafted for A/L & O/L syllabi." },
+  { icon: Users, title: "Small Batch Sizes", desc: "Personalized attention with limited students per class." },
+  { icon: Mic, title: "Speaking Practice", desc: "Build fluency through guided conversation exercises." },
+  { icon: GraduationCap, title: "Exam Strategy", desc: "Proven techniques to maximize marks in every paper." },
+  { icon: BookOpen, title: "Grammar Mastery", desc: "Clear, simplified approach to English grammar rules." },
 ];
 
+const containerVariants = {
+  hidden: {},
+  visible: {
+    transition: { staggerChildren: 0.15, delayChildren: 0.3 },
+  },
+};
+
+const cardVariants: Variants = {
+  hidden: { opacity: 0, y: 40, scale: 0.9 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] },
+  },
+};
+
+const centerVariants: Variants = {
+  hidden: { opacity: 0, scale: 0 },
+  visible: {
+    opacity: 1,
+    scale: 1,
+    transition: { duration: 0.8, type: "spring" as const, stiffness: 100, damping: 12 },
+  },
+};
+
+const pulseRingVariants: Variants = {
+  hidden: { opacity: 0, scale: 0.5 },
+  visible: (i: number) => ({
+    opacity: 1,
+    scale: 1,
+    transition: { duration: 0.8, delay: 0.2 + i * 0.15, ease: "easeOut" as const },
+  }),
+};
+
 const FeatureCard = ({ feature, index }: { feature: typeof features[0]; index: number }) => {
-  const ref = useRef<HTMLDivElement>(null);
-  const isEven = index % 2 === 0;
+  const [hovered, setHovered] = useState(false);
 
   return (
     <motion.div
-      ref={ref}
-      initial={{ opacity: 0, x: isEven ? -60 : 60, rotateY: isEven ? -8 : 8 }}
-      whileInView={{ opacity: 1, x: 0, rotateY: 0 }}
-      viewport={{ once: true, margin: "-50px" }}
-      transition={{ duration: 0.7, delay: index * 0.08, ease: [0.25, 0.46, 0.45, 0.94] }}
+      variants={cardVariants}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
       className="group relative"
     >
-      <div
-        className="relative overflow-hidden rounded-3xl p-[1px] transition-all duration-500"
-        style={{
-          background: `linear-gradient(135deg, hsl(${feature.accent} / 0.3), transparent 60%)`,
-        }}
-      >
-        <div className="relative rounded-3xl bg-card p-6 sm:p-8 overflow-hidden transition-all duration-500 group-hover:bg-card/80">
-          {/* Glow orb */}
-          <div
-            className="absolute -top-16 -right-16 w-40 h-40 rounded-full blur-3xl opacity-0 group-hover:opacity-20 transition-opacity duration-700"
-            style={{ background: `hsl(${feature.accent})` }}
-          />
+      <div className="relative overflow-hidden rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm p-6 transition-all duration-500 hover:shadow-2xl hover:shadow-primary/10 hover:border-primary/30 hover:-translate-y-1">
+        {/* Background glow on hover */}
+        <motion.div
+          animate={{ opacity: hovered ? 0.08 : 0, scale: hovered ? 1.2 : 0.8 }}
+          transition={{ duration: 0.5 }}
+          className="absolute -top-20 -right-20 w-48 h-48 rounded-full bg-primary blur-3xl pointer-events-none"
+        />
 
-          {/* Number watermark */}
-          <span
-            className="absolute top-3 right-5 text-[5rem] font-extrabold leading-none opacity-[0.04] select-none pointer-events-none"
-            style={{ fontFamily: "var(--font-heading)" }}
-          >
+        {/* Step number */}
+        <div className="absolute top-4 right-4">
+          <span className="text-5xl font-extrabold text-foreground/[0.04] select-none" style={{ fontFamily: "var(--font-heading)" }}>
             {String(index + 1).padStart(2, "0")}
           </span>
-
-          <div className="relative z-10 flex items-start gap-5">
-            {/* Icon */}
-            <motion.div
-              whileHover={{ rotate: 12, scale: 1.1 }}
-              transition={{ type: "spring", stiffness: 300 }}
-              className="flex-shrink-0 w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg"
-              style={{
-                background: `linear-gradient(135deg, hsl(${feature.accent}), hsl(${feature.accent} / 0.7))`,
-              }}
-            >
-              <feature.icon className="w-7 h-7 text-white" />
-            </motion.div>
-
-            <div className="flex-1 min-w-0">
-              <h3 className="text-lg font-bold text-foreground mb-1.5 group-hover:text-primary transition-colors duration-300">
-                {feature.title}
-              </h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                {feature.desc}
-              </p>
-
-              {/* Hover reveal arrow */}
-              <motion.div
-                className="mt-3 flex items-center gap-1.5 text-xs font-semibold opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300"
-                style={{ color: `hsl(${feature.accent})` }}
-              >
-                Learn more <ArrowRight className="w-3.5 h-3.5" />
-              </motion.div>
-            </div>
-          </div>
         </div>
+
+        {/* Icon */}
+        <motion.div
+          animate={{ rotate: hovered ? 8 : 0, scale: hovered ? 1.1 : 1 }}
+          transition={{ type: "spring", stiffness: 400, damping: 15 }}
+          className="relative z-10 w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-4 border border-primary/20 group-hover:bg-primary group-hover:border-primary transition-colors duration-500"
+        >
+          <feature.icon className="w-7 h-7 text-primary group-hover:text-primary-foreground transition-colors duration-500" />
+        </motion.div>
+
+        {/* Content */}
+        <div className="relative z-10">
+          <h3
+            className="text-lg font-bold text-foreground mb-2 group-hover:text-primary transition-colors duration-300"
+            style={{ fontFamily: "var(--font-heading)" }}
+          >
+            {feature.title}
+          </h3>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            {feature.desc}
+          </p>
+        </div>
+
+        {/* Bottom accent line */}
+        <motion.div
+          animate={{ scaleX: hovered ? 1 : 0 }}
+          transition={{ duration: 0.4 }}
+          className="absolute bottom-0 left-0 right-0 h-[3px] bg-gradient-to-r from-primary to-accent origin-left"
+        />
       </div>
     </motion.div>
   );
 };
 
 const AboutSection = () => (
-  <section className="relative py-24 overflow-hidden" id="about">
-    {/* Background pattern */}
+  <section className="relative py-24 md:py-32 overflow-hidden" id="about">
+    {/* Backgrounds */}
     <div className="absolute inset-0 bg-background" />
     <div
-      className="absolute inset-0 opacity-[0.02]"
+      className="absolute inset-0 opacity-[0.015]"
       style={{
         backgroundImage: `radial-gradient(hsl(var(--primary)) 1px, transparent 1px)`,
-        backgroundSize: "32px 32px",
+        backgroundSize: "28px 28px",
       }}
     />
 
-    {/* Floating gradient blobs */}
+    {/* Ambient blobs */}
     <motion.div
-      animate={{ y: [0, -30, 0], x: [0, 20, 0] }}
-      transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
-      className="absolute top-20 -left-32 w-72 h-72 rounded-full bg-primary/5 blur-3xl"
+      animate={{ y: [0, -40, 0], x: [0, 30, 0], scale: [1, 1.1, 1] }}
+      transition={{ duration: 16, repeat: Infinity, ease: "easeInOut" }}
+      className="absolute top-10 left-[-10%] w-[400px] h-[400px] rounded-full bg-primary/5 blur-[100px]"
     />
     <motion.div
-      animate={{ y: [0, 20, 0], x: [0, -15, 0] }}
-      transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
-      className="absolute bottom-20 -right-32 w-80 h-80 rounded-full bg-accent/5 blur-3xl"
+      animate={{ y: [0, 30, 0], x: [0, -20, 0], scale: [1, 1.15, 1] }}
+      transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
+      className="absolute bottom-10 right-[-10%] w-[350px] h-[350px] rounded-full bg-accent/5 blur-[100px]"
     />
 
     <div className="container mx-auto px-4 relative z-10">
-      {/* Header with asymmetric layout */}
-      <div className="max-w-3xl mb-16">
+      {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.6 }}
+        className="text-center mb-20"
+      >
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
-          className="flex items-center gap-3 mb-4"
-        >
-          <div className="h-[2px] w-12 bg-primary rounded-full" />
-          <p className="text-primary font-semibold text-sm uppercase tracking-widest">
-            Why Choose Us
-          </p>
-        </motion.div>
-
-        <motion.h2
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0, scale: 0.8 }}
+          whileInView={{ opacity: 1, scale: 1 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5, delay: 0.1 }}
+          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 mb-6"
+        >
+          <Sparkles className="w-3.5 h-3.5 text-primary" />
+          <span className="text-primary font-semibold text-xs uppercase tracking-widest">
+            Why Choose Us
+          </span>
+        </motion.div>
+
+        <h2
           className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-foreground leading-tight"
           style={{ fontFamily: "var(--font-heading)" }}
         >
           What Makes Us{" "}
           <span className="relative inline-block">
-            <span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">
+            <span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-r from-primary via-primary to-accent">
               Different
             </span>
             <motion.span
               initial={{ scaleX: 0 }}
               whileInView={{ scaleX: 1 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: 0.5 }}
-              className="absolute -bottom-1 left-0 right-0 h-3 bg-primary/10 rounded-full origin-left"
+              transition={{ duration: 0.7, delay: 0.6, ease: "easeOut" }}
+              className="absolute -bottom-2 left-0 right-0 h-3 bg-primary/10 rounded-full origin-left"
             />
           </span>
-        </motion.h2>
+        </h2>
+        <motion.p
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+          className="text-muted-foreground mt-4 max-w-lg mx-auto text-sm md:text-base"
+        >
+          We combine innovative teaching methods with personalized attention to deliver exceptional results
+        </motion.p>
+      </motion.div>
+
+      {/* Desktop: 3-column grid with center circle */}
+      <div className="hidden lg:block">
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-80px" }}
+          className="relative max-w-6xl mx-auto"
+        >
+          {/* Grid with center piece */}
+          <div className="grid grid-cols-3 gap-6 items-start">
+            {/* Left column */}
+            <div className="space-y-6 pt-8">
+              {features.slice(0, 2).map((f, i) => (
+                <FeatureCard key={f.title} feature={f} index={i} />
+              ))}
+            </div>
+
+            {/* Center column - circle + 1 card below */}
+            <div className="flex flex-col items-center gap-8">
+              {/* Center circle */}
+              <motion.div variants={centerVariants} className="relative">
+                {/* Pulse rings */}
+                {[0, 1, 2].map((i) => (
+                  <motion.div
+                    key={i}
+                    variants={pulseRingVariants}
+                    custom={i}
+                    className="absolute inset-0 rounded-full border border-primary/10"
+                    style={{
+                      transform: `scale(${1.3 + i * 0.25})`,
+                    }}
+                  />
+                ))}
+
+                {/* Rotating dashed ring */}
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
+                  className="absolute -inset-6 rounded-full border-2 border-dashed border-primary/15"
+                />
+
+                {/* Main circle */}
+                <div className="relative w-48 h-48 rounded-full bg-gradient-to-br from-primary via-primary to-accent flex items-center justify-center shadow-2xl shadow-primary/30">
+                  {/* Inner shimmer */}
+                  <motion.div
+                    animate={{ rotate: [-10, 10, -10] }}
+                    transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+                    className="absolute inset-2 rounded-full bg-gradient-to-tr from-white/20 to-transparent"
+                  />
+                  <div className="text-center text-primary-foreground relative z-10">
+                    <motion.p
+                      initial={{ opacity: 0, y: 10 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: 1, duration: 0.5 }}
+                      className="text-5xl font-extrabold leading-none"
+                      style={{ fontFamily: "var(--font-heading)" }}
+                    >
+                      6+
+                    </motion.p>
+                    <motion.p
+                      initial={{ opacity: 0 }}
+                      whileInView={{ opacity: 0.9 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: 1.2, duration: 0.5 }}
+                      className="text-[10px] font-bold mt-1.5 uppercase tracking-[0.2em]"
+                    >
+                      Key Features
+                    </motion.p>
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Cards under center */}
+              {features.slice(2, 4).map((f, i) => (
+                <FeatureCard key={f.title} feature={f} index={i + 2} />
+              ))}
+            </div>
+
+            {/* Right column */}
+            <div className="space-y-6 pt-8">
+              {features.slice(4, 6).map((f, i) => (
+                <FeatureCard key={f.title} feature={f} index={i + 4} />
+              ))}
+            </div>
+          </div>
+        </motion.div>
       </div>
 
-      {/* Staggered masonry-style grid */}
-      <div className="grid md:grid-cols-2 gap-5 max-w-5xl">
-        {/* Left column - offset up */}
-        <div className="space-y-5">
-          {features.filter((_, i) => i % 2 === 0).map((f, i) => (
-            <FeatureCard key={f.title} feature={f} index={i * 2} />
+      {/* Tablet: 2 columns */}
+      <div className="hidden md:block lg:hidden">
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+          className="grid grid-cols-2 gap-5 max-w-3xl mx-auto"
+        >
+          {features.map((f, i) => (
+            <FeatureCard key={f.title} feature={f} index={i} />
           ))}
-        </div>
-        {/* Right column - offset down */}
-        <div className="space-y-5 md:pt-12">
-          {features.filter((_, i) => i % 2 !== 0).map((f, i) => (
-            <FeatureCard key={f.title} feature={f} index={i * 2 + 1} />
+        </motion.div>
+      </div>
+
+      {/* Mobile: single column */}
+      <div className="md:hidden">
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+          className="space-y-4 max-w-sm mx-auto"
+        >
+          {/* Mobile center badge */}
+          <motion.div variants={centerVariants} className="flex justify-center mb-6">
+            <div className="w-28 h-28 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-xl shadow-primary/20">
+              <div className="text-center text-primary-foreground">
+                <p className="text-3xl font-extrabold leading-none" style={{ fontFamily: "var(--font-heading)" }}>6+</p>
+                <p className="text-[8px] font-bold mt-1 uppercase tracking-widest opacity-90">Features</p>
+              </div>
+            </div>
+          </motion.div>
+
+          {features.map((f, i) => (
+            <FeatureCard key={f.title} feature={f} index={i} />
           ))}
-        </div>
+        </motion.div>
       </div>
     </div>
   </section>
