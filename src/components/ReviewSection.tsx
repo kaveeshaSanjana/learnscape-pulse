@@ -75,17 +75,18 @@ function Initials({ name, size = "sm" }: { name: string; size?: "sm" | "md" | "l
 }
 
 // Layout patterns for collage effect
+// Mobile: 2 cols, Desktop: 4 cols. All cards use comfortable sizes, no narrow 1-col on mobile.
 const layoutPatterns = [
-  { cols: "col-span-2", rows: "row-span-2", textSize: "text-base md:text-lg", clamp: "line-clamp-6", nameSize: "text-sm", avatarSize: "lg" as const, starSize: "md" as const },
-  { cols: "col-span-1", rows: "row-span-1", textSize: "text-xs md:text-sm", clamp: "line-clamp-3", nameSize: "text-xs", avatarSize: "sm" as const, starSize: "sm" as const },
-  { cols: "col-span-1", rows: "row-span-2", textSize: "text-sm", clamp: "line-clamp-5", nameSize: "text-xs", avatarSize: "sm" as const, starSize: "sm" as const },
-  { cols: "col-span-1", rows: "row-span-1", textSize: "text-xs", clamp: "line-clamp-2", nameSize: "text-xs", avatarSize: "sm" as const, starSize: "sm" as const },
-  { cols: "col-span-2", rows: "row-span-1", textSize: "text-sm md:text-base", clamp: "line-clamp-3", nameSize: "text-sm", avatarSize: "md" as const, starSize: "md" as const },
-  { cols: "col-span-1", rows: "row-span-1", textSize: "text-xs", clamp: "line-clamp-2", nameSize: "text-xs", avatarSize: "sm" as const, starSize: "sm" as const },
-  { cols: "col-span-1", rows: "row-span-1", textSize: "text-xs md:text-sm", clamp: "line-clamp-3", nameSize: "text-xs", avatarSize: "sm" as const, starSize: "sm" as const },
-  { cols: "col-span-2", rows: "row-span-2", textSize: "text-base md:text-lg", clamp: "line-clamp-6", nameSize: "text-sm", avatarSize: "lg" as const, starSize: "md" as const },
-  { cols: "col-span-1", rows: "row-span-2", textSize: "text-sm", clamp: "line-clamp-5", nameSize: "text-xs", avatarSize: "sm" as const, starSize: "sm" as const },
-  { cols: "col-span-1", rows: "row-span-1", textSize: "text-xs", clamp: "line-clamp-2", nameSize: "text-xs", avatarSize: "sm" as const, starSize: "sm" as const },
+  { cols: "col-span-2 md:col-span-2", rows: "row-span-2", textSize: "text-sm md:text-lg", clamp: "line-clamp-5 md:line-clamp-6", nameSize: "text-sm", avatarSize: "lg" as const, starSize: "md" as const },
+  { cols: "col-span-1 md:col-span-1", rows: "row-span-2", textSize: "text-xs md:text-sm", clamp: "line-clamp-4", nameSize: "text-xs", avatarSize: "sm" as const, starSize: "sm" as const },
+  { cols: "col-span-1 md:col-span-1", rows: "row-span-2", textSize: "text-xs md:text-sm", clamp: "line-clamp-4", nameSize: "text-xs", avatarSize: "sm" as const, starSize: "sm" as const },
+  { cols: "col-span-2 md:col-span-2", rows: "row-span-2", textSize: "text-sm md:text-base", clamp: "line-clamp-4 md:line-clamp-5", nameSize: "text-sm", avatarSize: "md" as const, starSize: "md" as const },
+  { cols: "col-span-1 md:col-span-1", rows: "row-span-2", textSize: "text-xs md:text-sm", clamp: "line-clamp-4", nameSize: "text-xs", avatarSize: "sm" as const, starSize: "sm" as const },
+  { cols: "col-span-1 md:col-span-1", rows: "row-span-2", textSize: "text-xs md:text-sm", clamp: "line-clamp-4", nameSize: "text-xs", avatarSize: "sm" as const, starSize: "sm" as const },
+  { cols: "col-span-2 md:col-span-2", rows: "row-span-2", textSize: "text-sm md:text-lg", clamp: "line-clamp-5 md:line-clamp-6", nameSize: "text-sm", avatarSize: "lg" as const, starSize: "md" as const },
+  { cols: "col-span-1 md:col-span-1", rows: "row-span-2", textSize: "text-xs md:text-sm", clamp: "line-clamp-4", nameSize: "text-xs", avatarSize: "sm" as const, starSize: "sm" as const },
+  { cols: "col-span-1 md:col-span-1", rows: "row-span-2", textSize: "text-xs md:text-sm", clamp: "line-clamp-4", nameSize: "text-xs", avatarSize: "sm" as const, starSize: "sm" as const },
+  { cols: "col-span-2 md:col-span-2", rows: "row-span-2", textSize: "text-sm md:text-base", clamp: "line-clamp-4", nameSize: "text-sm", avatarSize: "md" as const, starSize: "md" as const },
 ];
 
 const cardStyles = [
@@ -192,10 +193,9 @@ const ReviewSection = () => {
             {[0, 1].map((setIdx) => (
               <div
                 key={setIdx}
-                className="grid gap-3 md:gap-4 mb-3 md:mb-4"
+                className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-3 md:mb-4"
                 style={{
-                  gridTemplateColumns: "repeat(4, 1fr)",
-                  gridAutoRows: "90px",
+                  gridAutoRows: "100px",
                 }}
               >
                 {reviews.map((review, i) => {
