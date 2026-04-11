@@ -75,18 +75,16 @@ function Initials({ name, size = "sm" }: { name: string; size?: "sm" | "md" | "l
 }
 
 // Layout patterns for collage effect
-// Mobile: 2 cols, Desktop: 4 cols. All cards use comfortable sizes, no narrow 1-col on mobile.
+// Cards auto-size based on content, no fixed row heights
 const layoutPatterns = [
-  { cols: "col-span-2 md:col-span-2", rows: "row-span-2", textSize: "text-sm md:text-lg", clamp: "line-clamp-5 md:line-clamp-6", nameSize: "text-sm", avatarSize: "lg" as const, starSize: "md" as const },
-  { cols: "col-span-1 md:col-span-1", rows: "row-span-2", textSize: "text-xs md:text-sm", clamp: "line-clamp-4", nameSize: "text-xs", avatarSize: "sm" as const, starSize: "sm" as const },
-  { cols: "col-span-1 md:col-span-1", rows: "row-span-2", textSize: "text-xs md:text-sm", clamp: "line-clamp-4", nameSize: "text-xs", avatarSize: "sm" as const, starSize: "sm" as const },
-  { cols: "col-span-2 md:col-span-2", rows: "row-span-2", textSize: "text-sm md:text-base", clamp: "line-clamp-4 md:line-clamp-5", nameSize: "text-sm", avatarSize: "md" as const, starSize: "md" as const },
-  { cols: "col-span-1 md:col-span-1", rows: "row-span-2", textSize: "text-xs md:text-sm", clamp: "line-clamp-4", nameSize: "text-xs", avatarSize: "sm" as const, starSize: "sm" as const },
-  { cols: "col-span-1 md:col-span-1", rows: "row-span-2", textSize: "text-xs md:text-sm", clamp: "line-clamp-4", nameSize: "text-xs", avatarSize: "sm" as const, starSize: "sm" as const },
-  { cols: "col-span-2 md:col-span-2", rows: "row-span-2", textSize: "text-sm md:text-lg", clamp: "line-clamp-5 md:line-clamp-6", nameSize: "text-sm", avatarSize: "lg" as const, starSize: "md" as const },
-  { cols: "col-span-1 md:col-span-1", rows: "row-span-2", textSize: "text-xs md:text-sm", clamp: "line-clamp-4", nameSize: "text-xs", avatarSize: "sm" as const, starSize: "sm" as const },
-  { cols: "col-span-1 md:col-span-1", rows: "row-span-2", textSize: "text-xs md:text-sm", clamp: "line-clamp-4", nameSize: "text-xs", avatarSize: "sm" as const, starSize: "sm" as const },
-  { cols: "col-span-2 md:col-span-2", rows: "row-span-2", textSize: "text-sm md:text-base", clamp: "line-clamp-4", nameSize: "text-sm", avatarSize: "md" as const, starSize: "md" as const },
+  { textSize: "text-sm md:text-lg", clamp: "line-clamp-5 md:line-clamp-6", nameSize: "text-sm", avatarSize: "lg" as const, starSize: "md" as const },
+  { textSize: "text-xs md:text-sm", clamp: "line-clamp-3 md:line-clamp-4", nameSize: "text-xs", avatarSize: "sm" as const, starSize: "sm" as const },
+  { textSize: "text-xs md:text-sm", clamp: "line-clamp-4", nameSize: "text-xs", avatarSize: "sm" as const, starSize: "sm" as const },
+  { textSize: "text-sm md:text-base", clamp: "line-clamp-4 md:line-clamp-5", nameSize: "text-sm", avatarSize: "md" as const, starSize: "md" as const },
+  { textSize: "text-xs md:text-sm", clamp: "line-clamp-3", nameSize: "text-xs", avatarSize: "sm" as const, starSize: "sm" as const },
+  { textSize: "text-sm md:text-lg", clamp: "line-clamp-5 md:line-clamp-6", nameSize: "text-sm", avatarSize: "lg" as const, starSize: "md" as const },
+  { textSize: "text-xs md:text-sm", clamp: "line-clamp-4", nameSize: "text-xs", avatarSize: "sm" as const, starSize: "sm" as const },
+  { textSize: "text-sm md:text-base", clamp: "line-clamp-4", nameSize: "text-sm", avatarSize: "md" as const, starSize: "md" as const },
 ];
 
 const cardStyles = [
@@ -152,16 +150,16 @@ const ReviewSection = () => {
           className="text-center"
         >
           <p className="text-primary font-semibold text-sm uppercase tracking-[0.2em] mb-3" style={{ fontFamily: "var(--font-body)" }}>
-            ✦ සිසු අත්දැකීම් ✦
+            ✦ Student Reviews ✦
           </p>
           <h2 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-foreground leading-tight" style={{ fontFamily: "var(--font-heading)" }}>
-            අපේ සිසුන්{" "}
+            What Our Students{" "}
             <span className="bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent">
-              කියන දේ
+              Say
             </span>
           </h2>
           <p className="text-muted-foreground mt-4 text-base md:text-lg max-w-xl mx-auto" style={{ fontFamily: "var(--font-body)" }}>
-            අප සමඟ ඉංග්‍රීසි ඉගෙන ගත් සිසුන්ගේ සැබෑ ප්‍රතිචාර
+            Real feedback from students who transformed their English with us
           </p>
         </motion.div>
       </div>
@@ -171,8 +169,8 @@ const ReviewSection = () => {
           <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
         </div>
       )}
-      {error && <p className="text-center text-muted-foreground py-12">සමාලෝචන පූරණය කළ නොහැක.</p>}
-      {!loading && !error && reviews.length === 0 && <p className="text-center text-muted-foreground py-12">සමාලෝචන හමු නොවීය.</p>}
+      {error && <p className="text-center text-muted-foreground py-12">Could not load reviews. Please check back later.</p>}
+      {!loading && !error && reviews.length === 0 && <p className="text-center text-muted-foreground py-12">No reviews found.</p>}
 
       {!loading && !error && reviews.length > 0 && (
         <div className="relative container mx-auto px-4 max-w-7xl">
@@ -193,14 +191,11 @@ const ReviewSection = () => {
             {[0, 1].map((setIdx) => (
               <div
                 key={setIdx}
-                className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-3 md:mb-4"
-                style={{
-                  gridAutoRows: "100px",
-                }}
+                className="columns-2 md:columns-3 lg:columns-4 gap-3 md:gap-4 mb-3 md:mb-4 space-y-3 md:space-y-4"
               >
                 {reviews.map((review, i) => {
                   const layout = layoutPatterns[i % layoutPatterns.length];
-                  const style = cardStyles[i % cardStyles.length];
+                  const cardStyle = cardStyles[i % cardStyles.length];
 
                   return (
                     <motion.div
@@ -210,11 +205,11 @@ const ReviewSection = () => {
                       viewport={{ once: false, margin: "-10px" }}
                       transition={{ duration: 0.5, delay: Math.min(i * 0.04, 0.3) }}
                       whileHover={{
-                        scale: 1.04,
+                        scale: 1.03,
                         zIndex: 30,
                         transition: { duration: 0.25 },
                       }}
-                      className={`${layout.cols} ${layout.rows} ${style} border backdrop-blur-sm rounded-2xl p-4 md:p-5 flex flex-col justify-between cursor-default transition-all duration-300 hover:shadow-2xl hover:shadow-primary/15 relative overflow-hidden group`}
+                      className={`${cardStyle} border backdrop-blur-sm rounded-2xl p-4 md:p-5 flex flex-col justify-between cursor-default transition-all duration-300 hover:shadow-2xl hover:shadow-primary/15 relative overflow-hidden group break-inside-avoid`}
                     >
                       {/* Big decorative quote */}
                       <Quote className="absolute -top-2 -right-2 w-16 h-16 text-foreground/[0.04] rotate-12 transition-all duration-700 group-hover:rotate-0 group-hover:text-foreground/[0.08] group-hover:scale-110" />
