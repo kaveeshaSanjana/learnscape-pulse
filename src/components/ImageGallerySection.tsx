@@ -1,109 +1,37 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, ChevronLeft, ChevronRight } from "lucide-react";
+import g01 from "@/assets/gallery/g01.jpeg";
+import g02 from "@/assets/gallery/g02.jpeg";
+import g03 from "@/assets/gallery/g03.jpeg";
+import g04 from "@/assets/gallery/g04.jpeg";
+import g05 from "@/assets/gallery/g05.jpeg";
+import g06 from "@/assets/gallery/g06.jpeg";
+import g07 from "@/assets/gallery/g07.jpeg";
+import g08 from "@/assets/gallery/g08.jpeg";
+import g09 from "@/assets/gallery/g09.jpeg";
+import g10 from "@/assets/gallery/g10.jpeg";
+import g11 from "@/assets/gallery/g11.jpeg";
 
-// ─── CONFIG ──────────────────────────────────────────────────────────────────
-// SAME spreadsheet as videos, but a SEPARATE sheet tab for the image gallery.
-// Sheet tab columns: url | alt
-//
-// How to get the gid:
-//   1. Open the spreadsheet → click the "Gallery" tab at the bottom
-//   2. Look at the browser URL bar → copy the number after "gid="
-//   3. Replace the value below.
-const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS-2yuQgo-0SSFVFrQWqKrxoyOWXEk4oTs4lS8R0ix8O_52Jxn3CqwreJuieKEE6K4HrDUHxNAWh2KD/pub?gid=321259135&single=true&output=csv";
-// ─────────────────────────────────────────────────────────────────────────────
-
-interface GalleryImage {
-  url: string;
-  alt: string;
-}
-
-function parseCsvLine(line: string): string[] {
-  const result: string[] = [];
-  let current = "";
-  let inQuotes = false;
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
-    if (ch === '"') {
-      if (inQuotes && line[i + 1] === '"') { current += '"'; i++; }
-      else inQuotes = !inQuotes;
-    } else if (ch === "," && !inQuotes) {
-      result.push(current.trim()); current = "";
-    } else {
-      current += ch;
-    }
-  }
-  result.push(current.trim());
-  return result;
-}
-
-function parseCsv(text: string): GalleryImage[] {
-  const lines = text.trim().split(/\r?\n/).filter((l) => l.trim() !== "");
-  if (lines.length < 2) return [];
-  const headers = parseCsvLine(lines[0]).map((h) => h.toLowerCase());
-  const urlIdx = headers.indexOf("url");
-  const altIdx = headers.indexOf("alt");
-  return lines
-    .slice(1)
-    .map((line) => {
-      const cols = parseCsvLine(line);
-      return {
-        url: urlIdx >= 0 ? cols[urlIdx] ?? "" : "",
-        alt: altIdx >= 0 ? cols[altIdx] ?? "Gallery image" : "Gallery image",
-      };
-    })
-    .filter((img) => img.url.startsWith("http"));
-}
+const images: { src: string; alt: string }[] = [
+  { src: g01, alt: "Phonetics class on the whiteboard" },
+  { src: g02, alt: "Birthday celebration with students" },
+  { src: g03, alt: "Engaged students in classroom" },
+  { src: g04, alt: "One-on-one tutoring session" },
+  { src: g05, alt: "Media interview" },
+  { src: g06, alt: "Lecture hall full of students" },
+  { src: g07, alt: "Free O/L batch session" },
+  { src: g08, alt: "Vocabulary practice — kitchen items" },
+  { src: g09, alt: "Student notes and study materials" },
+  { src: g10, alt: "Packed classroom in session" },
+  { src: g11, alt: "Eazy English moments" },
+];
 
 const ImageGallerySection = () => {
-  const [images, setImages] = useState<GalleryImage[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-  const [lightbox, setLightbox] = useState<number | null>(null);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 10_000);
-
-    fetch(SHEET_CSV_URL, { signal: controller.signal })
-      .then((res) => {
-        if (!res.ok) throw new Error("fetch failed");
-        return res.text();
-      })
-      .then((text) => {
-        clearTimeout(timer);
-        setImages(parseCsv(text));
-        setLoading(false);
-      })
-      .catch(() => {
-        clearTimeout(timer);
-        setError(true);
-        setLoading(false);
-      });
-
-    return () => { clearTimeout(timer); controller.abort(); };
-  }, []);
-
-  const closeLightbox = useCallback(() => setLightbox(null), []);
-  const prevImage = useCallback(() =>
-    setLightbox((i) => (i !== null ? (i - 1 + images.length) % images.length : null)), [images.length]);
-  const nextImage = useCallback(() =>
-    setLightbox((i) => (i !== null ? (i + 1) % images.length : null)), [images.length]);
-
-  useEffect(() => {
-    if (lightbox === null) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") closeLightbox();
-      if (e.key === "ArrowLeft") prevImage();
-      if (e.key === "ArrowRight") nextImage();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [lightbox, closeLightbox, prevImage, nextImage]);
+  const [active, setActive] = useState(0);
 
   return (
-    <section className="py-20 bg-background" id="gallery">
-      <div className="container mx-auto px-4 max-w-7xl">
+    <section className="py-20 bg-secondary/30" id="gallery">
+      <div className="container mx-auto px-4 max-w-6xl">
         {/* Heading */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -132,132 +60,80 @@ const ImageGallerySection = () => {
           </p>
         </motion.div>
 
-        {/* States */}
-        {loading && (
-          <div className="flex justify-center py-16">
-            <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+        {/* Featured image */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+          className="relative w-full aspect-[16/9] rounded-2xl overflow-hidden shadow-2xl bg-muted"
+        >
+          <AnimatePresence mode="wait">
+            <motion.img
+              key={active}
+              src={images[active].src}
+              alt={images[active].alt}
+              initial={{ opacity: 0, scale: 1.02 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.4 }}
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+          </AnimatePresence>
+
+          {/* Bottom gradient + caption */}
+          <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/80 via-black/40 to-transparent pointer-events-none" />
+          <div className="absolute bottom-0 left-0 right-0 p-5 md:p-7">
+            <p
+              className="text-white/70 text-xs uppercase tracking-[0.2em] mb-1"
+              style={{ fontFamily: "var(--font-body)" }}
+            >
+              {String(active + 1).padStart(2, "0")} / {String(images.length).padStart(2, "0")}
+            </p>
+            <h3
+              className="text-white text-xl md:text-2xl font-bold drop-shadow-lg"
+              style={{ fontFamily: "var(--font-heading)" }}
+            >
+              Student Moments &amp; Events
+            </h3>
           </div>
-        )}
-        {error && (
-          <p className="text-center text-muted-foreground py-16">
-            Could not load gallery. Please check back later.
-          </p>
-        )}
-        {!loading && !error && images.length === 0 && (
-          <p className="text-center text-muted-foreground py-16">
-            No images found. Add rows to your Google Sheet and refresh.
-          </p>
-        )}
+        </motion.div>
 
-        {/* Dynamic grid */}
-        {!loading && !error && images.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-            className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 auto-rows-[180px] sm:auto-rows-[200px] md:auto-rows-[220px]"
-          >
+        {/* Thumbnails */}
+        <div className="mt-5 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-thin">
+          <div className="flex gap-3 min-w-max">
             {images.map((img, i) => {
-              // Create varying sizes: every 5th image is large (2x2), every 3rd is tall (1x2)
-              const isLarge = i % 7 === 0;
-              const isTall = i % 5 === 2;
-              const isWide = i % 6 === 3;
-
+              const isActive = i === active;
               return (
-                <motion.div
-                  key={`${img.url}-${i}`}
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  whileInView={{ opacity: 1, scale: 1 }}
-                  viewport={{ once: true, margin: "-30px" }}
-                  transition={{ duration: 0.4, delay: Math.min(i * 0.03, 0.5) }}
-                  className={`cursor-pointer overflow-hidden rounded-lg group relative ${
-                    isLarge
-                      ? "col-span-2 row-span-2"
-                      : isTall
-                      ? "row-span-2"
-                      : isWide
-                      ? "col-span-2"
-                      : ""
+                <button
+                  key={i}
+                  onClick={() => setActive(i)}
+                  aria-label={`Show image ${i + 1}`}
+                  className={`relative shrink-0 w-24 h-20 sm:w-28 sm:h-24 md:w-32 md:h-24 rounded-lg overflow-hidden transition-all duration-300 group ${
+                    isActive
+                      ? "ring-2 ring-primary ring-offset-2 ring-offset-background scale-105"
+                      : "ring-1 ring-border hover:ring-primary/50"
                   }`}
-                  onClick={() => setLightbox(i)}
                 >
                   <img
-                    src={img.url}
+                    src={img.src}
                     alt={img.alt}
                     loading="lazy"
-                    className="w-full h-full object-cover block transition-transform duration-300 group-hover:scale-105"
+                    className={`w-full h-full object-cover transition-all duration-300 ${
+                      isActive
+                        ? "brightness-100"
+                        : "brightness-75 group-hover:brightness-110 group-hover:scale-110"
+                    }`}
                   />
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-300 rounded-lg" />
-                </motion.div>
+                  {!isActive && (
+                    <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors" />
+                  )}
+                </button>
               );
             })}
-          </motion.div>
-        )}
+          </div>
+        </div>
       </div>
-
-      {/* Lightbox */}
-      <AnimatePresence>
-        {lightbox !== null && images[lightbox] && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/90"
-            onClick={closeLightbox}
-          >
-            {/* Close */}
-            <button
-              className="absolute top-4 right-4 text-white/80 hover:text-white p-2 rounded-full bg-black/40 hover:bg-black/60 transition-colors z-10"
-              onClick={closeLightbox}
-              aria-label="Close"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            {/* Prev */}
-            {images.length > 1 && (
-              <button
-                className="absolute left-4 text-white/80 hover:text-white p-2 rounded-full bg-black/40 hover:bg-black/60 transition-colors z-10"
-                onClick={(e) => { e.stopPropagation(); prevImage(); }}
-                aria-label="Previous"
-              >
-                <ChevronLeft className="w-6 h-6" />
-              </button>
-            )}
-
-            {/* Image */}
-            <motion.img
-              key={lightbox}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              transition={{ duration: 0.25 }}
-              src={images[lightbox].url}
-              alt={images[lightbox].alt}
-              className="max-w-[90vw] max-h-[88vh] object-contain rounded-lg shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            />
-
-            {/* Next */}
-            {images.length > 1 && (
-              <button
-                className="absolute right-4 text-white/80 hover:text-white p-2 rounded-full bg-black/40 hover:bg-black/60 transition-colors z-10"
-                onClick={(e) => { e.stopPropagation(); nextImage(); }}
-                aria-label="Next"
-              >
-                <ChevronRight className="w-6 h-6" />
-              </button>
-            )}
-
-            {/* Counter */}
-            <p className="absolute bottom-4 text-white/60 text-sm">
-              {lightbox + 1} / {images.length}
-            </p>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </section>
   );
 };
