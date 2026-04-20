@@ -8,7 +8,6 @@ import CourseTypesSection from "@/components/CourseTypesSection";
 import LoadingPage from "@/components/LoadingPage";
 
 // Lazy load non-critical components
-const VideoGallerySection = lazy(() => import("@/components/VideoGallerySection"));
 const ImageGallerySection = lazy(() => import("@/components/ImageGallerySection"));
 const ReviewSection = lazy(() => import("@/components/ReviewSection"));
 const InstitutesSection = lazy(() => import("@/components/InstitutesSection"));
@@ -56,10 +55,6 @@ const Index = () => {
           {/* Lazy loaded sections */}
           <Suspense fallback={<SectionFallback />}>
             <InstitutesSection />
-          </Suspense>
-
-          <Suspense fallback={<SectionFallback />}>
-            <VideoGallerySection />
           </Suspense>
 
           <Suspense fallback={<SectionFallback />}>
