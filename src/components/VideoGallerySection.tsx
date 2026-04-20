@@ -72,6 +72,25 @@ function parseCsv(text: string): VideoItem[] {
 // Facebook brand colour
 const FB_BLUE = "#1877F2";
 
+// Static YouTube videos always shown
+const STATIC_VIDEOS: VideoItem[] = [
+  {
+    title: "English Class Session",
+    url: "https://www.youtube.com/watch?v=DhY4k16yexA",
+    description: "",
+    thumbnail: "https://img.youtube.com/vi/DhY4k16yexA/hqdefault.jpg",
+  },
+  {
+    title: "English Class Session",
+    url: "https://www.youtube.com/watch?v=9M_s7tehp2I",
+    description: "",
+    thumbnail: "https://img.youtube.com/vi/9M_s7tehp2I/hqdefault.jpg",
+  },
+];
+
+const isYouTube = (url: string) =>
+  url.includes("youtube.com") || url.includes("youtu.be");
+
 // ─── COMPONENT ────────────────────────────────────────────────────────────────
 const VideoGallerySection = () => {
   const [videos, setVideos] = useState<VideoItem[]>([]);
@@ -102,14 +121,16 @@ const VideoGallerySection = () => {
     return () => { clearTimeout(timer); controller.abort(); };
   }, []);
 
+  // Merge static YouTube videos with sheet videos
+  const allVideos = [...STATIC_VIDEOS, ...videos];
+
   // Repeat enough copies so the track always overflows the viewport
   const minItems = 12;
-  const copies = videos.length > 0 ? Math.ceil(minItems / videos.length) + 1 : 0;
-  const baseTrack = videos.length > 0 ? Array.from({ length: copies }, () => videos).flat() : [];
-  // Add one more copy at the end for seamless looping; animate to -1/copies of total
-  const track = [...baseTrack, ...videos];
-  const animPct = videos.length > 0 ? (100 / (copies + 1)).toFixed(4) : "50";
-  const durationSec = Math.max(20, videos.length * 8);
+  const copies = allVideos.length > 0 ? Math.ceil(minItems / allVideos.length) + 1 : 0;
+  const baseTrack = allVideos.length > 0 ? Array.from({ length: copies }, () => allVideos).flat() : [];
+  const track = [...baseTrack, ...allVideos];
+  const animPct = allVideos.length > 0 ? (100 / (copies + 1)).toFixed(4) : "50";
+  const durationSec = Math.max(20, allVideos.length * 8);
 
   return (
     <section className="py-20 overflow-hidden bg-background" id="videos">
@@ -156,14 +177,14 @@ const VideoGallerySection = () => {
         </p>
       )}
 
-      {!loading && !error && videos.length === 0 && (
+      {!loading && !error && allVideos.length === 0 && (
         <p className="text-center text-muted-foreground py-12">
           No videos found. Add rows to your Google Sheet and refresh.
         </p>
       )}
 
       {/* ── RTL Scroll Gallery ── */}
-      {!loading && !error && videos.length > 0 && (
+      {allVideos.length > 0 && (
         <div
           className="relative"
           onMouseEnter={() => setPaused(true)}
@@ -197,7 +218,9 @@ const VideoGallerySection = () => {
                   className="relative w-full flex items-center justify-center overflow-hidden"
                   style={{
                     aspectRatio: "16/9",
-                    background: "linear-gradient(135deg, #1877F2 0%, #0d5fcc 100%)",
+                    background: isYouTube(video.url)
+                      ? "linear-gradient(135deg, #1a1a1a 0%, #282828 100%)"
+                      : "linear-gradient(135deg, #1877F2 0%, #0d5fcc 100%)",
                   }}
                 >
                   {/* Custom thumbnail if provided, else branded placeholder */}
@@ -235,16 +258,25 @@ const VideoGallerySection = () => {
                     <Play className="w-6 h-6 text-white fill-white translate-x-0.5" />
                   </div>
 
-                  {/* "Watch on Facebook" badge */}
-                  <div
-                    className="absolute bottom-2 right-2 flex items-center gap-1.5 px-2 py-1 rounded-full text-white text-[10px] font-semibold"
-                    style={{ background: FB_BLUE }}
-                  >
-                    <svg className="w-3 h-3" viewBox="0 0 24 24" fill="white">
-                      <path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.413c0-3.025 1.791-4.697 4.533-4.697 1.313 0 2.686.236 2.686.236v2.97h-1.513c-1.491 0-1.956.93-1.956 1.886v2.265h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z" />
-                    </svg>
-                    Watch on Facebook
-                  </div>
+                  {/* Platform badge */}
+                  {isYouTube(video.url) ? (
+                    <div className="absolute bottom-2 right-2 flex items-center gap-1.5 px-2 py-1 rounded-full text-white text-[10px] font-semibold bg-[#FF0000]">
+                      <svg className="w-3 h-3" viewBox="0 0 24 24" fill="white">
+                        <path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.6 15.6V8.4l6.3 3.6-6.3 3.6z" />
+                      </svg>
+                      Watch on YouTube
+                    </div>
+                  ) : (
+                    <div
+                      className="absolute bottom-2 right-2 flex items-center gap-1.5 px-2 py-1 rounded-full text-white text-[10px] font-semibold"
+                      style={{ background: FB_BLUE }}
+                    >
+                      <svg className="w-3 h-3" viewBox="0 0 24 24" fill="white">
+                        <path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.413c0-3.025 1.791-4.697 4.533-4.697 1.313 0 2.686.236 2.686.236v2.97h-1.513c-1.491 0-1.956.93-1.956 1.886v2.265h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z" />
+                      </svg>
+                      Watch on Facebook
+                    </div>
+                  )}
                 </div>
 
                 {/* Card footer */}
@@ -270,7 +302,7 @@ const VideoGallerySection = () => {
                       className="text-muted-foreground text-xs"
                       style={{ fontFamily: "var(--font-body)" }}
                     >
-                      Click to watch on Facebook
+                      {isYouTube(video.url) ? "Click to watch on YouTube" : "Click to watch on Facebook"}
                     </p>
                   )}
                 </div>

@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Star, Quote } from "lucide-react";
 
@@ -35,75 +35,116 @@ function parseCsv(text: string): ReviewItem[] {
   const lines = text.trim().split(/\r?\n/).filter((l) => l.trim() !== "");
   if (lines.length < 2) return [];
   const headers = parseCsvLine(lines[0]).map((h) => h.toLowerCase().trim());
-  const nameIdx = headers.indexOf("name");
+  const nameIdx   = headers.indexOf("name");
   const reviewIdx = headers.indexOf("review");
   const ratingIdx = headers.indexOf("rating");
   const avatarIdx = headers.indexOf("avatar");
-
   return lines.slice(1).map((line) => {
     const cols = parseCsvLine(line);
     const rating = ratingIdx >= 0 ? parseInt(cols[ratingIdx] ?? "5", 10) : 5;
     return {
-      name: nameIdx >= 0 ? cols[nameIdx] ?? "Student" : "Student",
-      review: reviewIdx >= 0 ? cols[reviewIdx] ?? "" : "",
+      name:   nameIdx   >= 0 ? cols[nameIdx]   ?? "Student" : "Student",
+      review: reviewIdx >= 0 ? cols[reviewIdx]  ?? "" : "",
       rating: isNaN(rating) ? 5 : Math.min(5, Math.max(1, rating)),
-      avatar: avatarIdx >= 0 ? cols[avatarIdx] ?? "" : "",
+      avatar: avatarIdx >= 0 ? cols[avatarIdx]  ?? "" : "",
     };
   }).filter((r) => r.review.length > 0);
 }
 
-function StarRating({ rating, size = "sm" }: { rating: number; size?: "sm" | "md" }) {
-  const s = size === "md" ? "w-4 h-4" : "w-3 h-3";
+function StarRating({ rating }: { rating: number }) {
   return (
     <div className="flex gap-0.5">
       {Array.from({ length: 5 }).map((_, i) => (
-        <Star key={i} className={`${s} ${i < rating ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground/20"}`} />
+        <Star key={i} className={`w-3 h-3 ${i < rating ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground/20"}`} />
       ))}
     </div>
   );
 }
 
-function Initials({ name, size = "sm" }: { name: string; size?: "sm" | "md" | "lg" }) {
+function Initials({ name }: { name: string }) {
   const parts = name.trim().split(" ");
   const initials = parts.length >= 2 ? parts[0][0] + parts[parts.length - 1][0] : name.slice(0, 2);
-  const sizeClass = size === "lg" ? "w-12 h-12 text-base" : size === "md" ? "w-10 h-10 text-sm" : "w-8 h-8 text-xs";
   return (
-    <div className={`${sizeClass} rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold flex-shrink-0`}>
+    <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xs flex-shrink-0">
       {initials.toUpperCase()}
     </div>
   );
 }
 
-// Layout patterns for collage effect
-// Cards auto-size based on content, no fixed row heights
-const layoutPatterns = [
-  { textSize: "text-sm md:text-lg", clamp: "line-clamp-5 md:line-clamp-6", nameSize: "text-sm", avatarSize: "lg" as const, starSize: "md" as const },
-  { textSize: "text-xs md:text-sm", clamp: "line-clamp-3 md:line-clamp-4", nameSize: "text-xs", avatarSize: "sm" as const, starSize: "sm" as const },
-  { textSize: "text-xs md:text-sm", clamp: "line-clamp-4", nameSize: "text-xs", avatarSize: "sm" as const, starSize: "sm" as const },
-  { textSize: "text-sm md:text-base", clamp: "line-clamp-4 md:line-clamp-5", nameSize: "text-sm", avatarSize: "md" as const, starSize: "md" as const },
-  { textSize: "text-xs md:text-sm", clamp: "line-clamp-3", nameSize: "text-xs", avatarSize: "sm" as const, starSize: "sm" as const },
-  { textSize: "text-sm md:text-lg", clamp: "line-clamp-5 md:line-clamp-6", nameSize: "text-sm", avatarSize: "lg" as const, starSize: "md" as const },
-  { textSize: "text-xs md:text-sm", clamp: "line-clamp-4", nameSize: "text-xs", avatarSize: "sm" as const, starSize: "sm" as const },
-  { textSize: "text-sm md:text-base", clamp: "line-clamp-4", nameSize: "text-sm", avatarSize: "md" as const, starSize: "md" as const },
+const cardStyles = [
+  "bg-card border-border",
+  "bg-primary/5 border-primary/20",
+  "bg-blue-500/5 border-blue-500/20",
+  "bg-emerald-500/5 border-emerald-500/20",
+  "bg-amber-500/5 border-amber-500/20",
+  "bg-violet-500/5 border-violet-500/20",
 ];
 
-const cardStyles = [
-  "bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-primary/20",
-  "bg-gradient-to-br from-blue-500/10 via-blue-500/5 to-transparent border-blue-500/20",
-  "bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent border-emerald-500/20",
-  "bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent border-amber-500/20",
-  "bg-gradient-to-br from-rose-500/10 via-rose-500/5 to-transparent border-rose-500/20",
-  "bg-gradient-to-br from-violet-500/10 via-violet-500/5 to-transparent border-violet-500/20",
-  "bg-gradient-to-br from-cyan-500/10 via-cyan-500/5 to-transparent border-cyan-500/20",
-  "bg-gradient-to-br from-pink-500/10 via-pink-500/5 to-transparent border-pink-500/20",
-];
+function ReviewCard({ review, i }: { review: ReviewItem; i: number }) {
+  const style = cardStyles[i % cardStyles.length];
+  return (
+    <div className={`${style} border rounded-2xl p-4 flex flex-col gap-3 relative overflow-hidden group hover:shadow-lg transition-shadow duration-300`}>
+      <Quote className="absolute -top-1 -right-1 w-10 h-10 text-foreground/[0.05] rotate-12" />
+      <p className="text-foreground/80 text-xs md:text-sm leading-relaxed line-clamp-4" style={{ fontFamily: "var(--font-body)" }}>
+        "{review.review}"
+      </p>
+      <div className="flex items-center justify-between gap-2 pt-2 border-t border-foreground/5">
+        <div className="flex items-center gap-2 min-w-0">
+          {review.avatar ? (
+            <img src={review.avatar} alt={review.name} loading="lazy"
+              className="w-7 h-7 rounded-full object-cover flex-shrink-0 ring-2 ring-background" />
+          ) : (
+            <Initials name={review.name} />
+          )}
+          <span className="text-foreground font-semibold text-xs truncate" style={{ fontFamily: "var(--font-body)" }}>
+            {review.name}
+          </span>
+        </div>
+        <StarRating rating={review.rating} />
+      </div>
+    </div>
+  );
+}
+
+/** Split reviews into N columns as evenly as possible */
+function splitIntoColumns(items: ReviewItem[], cols: number): ReviewItem[][] {
+  const columns: ReviewItem[][] = Array.from({ length: cols }, () => []);
+  items.forEach((item, i) => columns[i % cols].push(item));
+  return columns;
+}
+
+/** One vertical scrolling column */
+function ScrollColumn({ reviews, duration, delay, paused, direction }: {
+  reviews: ReviewItem[];
+  duration: number;
+  delay: number;
+  paused: boolean;
+  direction: "up" | "down";
+}) {
+  // Double the list for seamless loop
+  const track = [...reviews, ...reviews];
+  return (
+    <div className="flex flex-col gap-3 w-max"
+      style={{
+        animation: `scroll-${direction} ${duration}s linear ${delay}s infinite`,
+        animationPlayState: paused ? "paused" : "running",
+      }}
+    >
+      {track.map((review, i) => (
+        <div key={`${review.name}-${i}`} className="w-[220px] md:w-[260px] lg:w-[280px]">
+          <ReviewCard review={review} i={i} />
+        </div>
+      ))}
+    </div>
+  );
+}
 
 const ReviewSection = () => {
   const [reviews, setReviews] = useState<ReviewItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
   const [paused, setPaused] = useState(false);
+  const [columnCount, setColumnCount] = useState(4);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -115,50 +156,42 @@ const ReviewSection = () => {
     return () => { clearTimeout(timer); controller.abort(); };
   }, []);
 
-  // Slow auto-scroll upward
   useEffect(() => {
-    const el = scrollRef.current;
-    if (!el || reviews.length === 0) return;
-    let raf: number;
-    let lastTime = 0;
-    const speed = 0.3; // px per frame at 60fps
-
-    const tick = (time: number) => {
-      if (lastTime && !paused) {
-        const delta = (time - lastTime) * 0.06;
-        el.scrollTop += speed * delta;
-        // Loop back when reaching end
-        if (el.scrollTop >= el.scrollHeight - el.clientHeight - 2) {
-          el.scrollTop = 0;
-        }
-      }
-      lastTime = time;
-      raf = requestAnimationFrame(tick);
+    const updateColumns = () => {
+      const width = window.innerWidth;
+      if (width < 640) setColumnCount(1);
+      else if (width < 1024) setColumnCount(2);
+      else if (width < 1280) setColumnCount(3);
+      else setColumnCount(4);
     };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [reviews, paused]);
+
+    updateColumns();
+    window.addEventListener("resize", updateColumns);
+    return () => window.removeEventListener("resize", updateColumns);
+  }, []);
+
+  const isMobile = columnCount === 1;
+  const columns = splitIntoColumns(reviews, columnCount);
+  const baseDuration = Math.max(18, reviews.length * 3);
 
   return (
-    <section className="py-20 overflow-hidden bg-muted/30" id="reviews">
+    <section className="py-20 bg-muted/30 overflow-hidden" id="reviews">
+      {/* Heading */}
       <div className="container mx-auto px-4 mb-12">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: false }}
+          viewport={{ once: true }}
           transition={{ duration: 0.6 }}
           className="text-center"
         >
           <p className="text-primary font-semibold text-sm uppercase tracking-[0.2em] mb-3" style={{ fontFamily: "var(--font-body)" }}>
-            ✦ Student Reviews ✦
+            Student Reviews
           </p>
-          <h2 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-foreground leading-tight" style={{ fontFamily: "var(--font-heading)" }}>
-            What Our Students{" "}
-            <span className="bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent">
-              Say
-            </span>
+          <h2 className="text-3xl md:text-4xl font-extrabold" style={{ fontFamily: "var(--font-heading)" }}>
+            දරුවො ඇත්තටම <span className="text-primary">අපි ගැන කියපු දේ</span>
           </h2>
-          <p className="text-muted-foreground mt-4 text-base md:text-lg max-w-xl mx-auto" style={{ fontFamily: "var(--font-body)" }}>
+          <p className="text-muted-foreground mt-3 text-sm md:text-base max-w-lg mx-auto" style={{ fontFamily: "var(--font-body)" }}>
             Real feedback from students who transformed their English with us
           </p>
         </motion.div>
@@ -173,90 +206,69 @@ const ReviewSection = () => {
       {!loading && !error && reviews.length === 0 && <p className="text-center text-muted-foreground py-12">No reviews found.</p>}
 
       {!loading && !error && reviews.length > 0 && (
-        <div className="relative container mx-auto px-4 max-w-7xl">
-          {/* Edge fades */}
-          <div className="pointer-events-none absolute left-0 top-0 w-full h-16 z-10 bg-gradient-to-b from-muted/30 to-transparent" />
-          <div className="pointer-events-none absolute left-0 bottom-0 w-full h-24 z-10 bg-gradient-to-t from-muted/30 to-transparent" />
+        <>
+          {isMobile ? (
+            <motion.div
+              initial={{ opacity: 0, y: 40 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-40px" }}
+              transition={{ duration: 0.6 }}
+              className="relative"
+            >
+              <div className="pointer-events-none absolute top-0 bottom-0 left-0 w-8 z-10 bg-gradient-to-r from-muted/30 to-transparent" />
+              <div className="pointer-events-none absolute top-0 bottom-0 right-0 w-8 z-10 bg-gradient-to-l from-muted/30 to-transparent" />
 
-          <div
-            ref={scrollRef}
-            className="overflow-hidden max-h-[650px] md:max-h-[700px] scroll-smooth"
-            onMouseEnter={() => setPaused(true)}
-            onMouseLeave={() => setPaused(false)}
-            onTouchStart={() => setPaused(true)}
-            onTouchEnd={() => setPaused(false)}
-            style={{ scrollbarWidth: "none" }}
-          >
-            {/* Duplicate reviews for seamless loop */}
-            {[0, 1].map((setIdx) => (
-              <div
-                key={setIdx}
-                className="columns-2 md:columns-3 lg:columns-4 gap-3 md:gap-4 mb-3 md:mb-4 space-y-3 md:space-y-4"
-              >
-                {reviews.map((review, i) => {
-                  const layout = layoutPatterns[i % layoutPatterns.length];
-                  const cardStyle = cardStyles[i % cardStyles.length];
-
-                  return (
-                    <motion.div
-                      key={`${setIdx}-${review.name}-${i}`}
-                      initial={{ opacity: 0, y: 30, scale: 0.95 }}
-                      whileInView={{ opacity: 1, y: 0, scale: 1 }}
-                      viewport={{ once: false, margin: "-10px" }}
-                      transition={{ duration: 0.5, delay: Math.min(i * 0.04, 0.3) }}
-                      whileHover={{
-                        scale: 1.03,
-                        zIndex: 30,
-                        transition: { duration: 0.25 },
-                      }}
-                      className={`${cardStyle} border backdrop-blur-sm rounded-2xl p-4 md:p-5 flex flex-col justify-between cursor-default transition-all duration-300 hover:shadow-2xl hover:shadow-primary/15 relative overflow-hidden group break-inside-avoid`}
-                    >
-                      {/* Big decorative quote */}
-                      <Quote className="absolute -top-2 -right-2 w-16 h-16 text-foreground/[0.04] rotate-12 transition-all duration-700 group-hover:rotate-0 group-hover:text-foreground/[0.08] group-hover:scale-110" />
-
-                      {/* Glow on hover */}
-                      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-gradient-to-br from-primary/5 via-transparent to-transparent rounded-2xl" />
-
-                      {/* Content */}
-                      <div className="flex-1 flex flex-col gap-2 relative z-10">
-                        <Quote className="w-5 h-5 text-primary/40 flex-shrink-0" />
-                        <p
-                          className={`text-foreground/80 ${layout.textSize} leading-relaxed flex-1 ${layout.clamp} font-medium`}
-                          style={{ fontFamily: "var(--font-body)" }}
-                        >
-                          "{review.review}"
-                        </p>
-                      </div>
-
-                      {/* Author row */}
-                      <div className="flex items-center justify-between gap-2 relative z-10 mt-2 pt-2 border-t border-foreground/5">
-                        <div className="flex items-center gap-2 min-w-0">
-                          {review.avatar ? (
-                            <img
-                              src={review.avatar}
-                              alt={review.name}
-                              loading="lazy"
-                              className={`rounded-full object-cover flex-shrink-0 ring-2 ring-background shadow-md ${layout.avatarSize === "lg" ? "w-11 h-11" : layout.avatarSize === "md" ? "w-9 h-9" : "w-7 h-7"}`}
-                            />
-                          ) : (
-                            <Initials name={review.name} size={layout.avatarSize} />
-                          )}
-                          <span
-                            className={`text-foreground font-bold ${layout.nameSize} truncate`}
-                            style={{ fontFamily: "var(--font-body)" }}
-                          >
-                            {review.name}
-                          </span>
-                        </div>
-                        <StarRating rating={review.rating} size={layout.starSize} />
-                      </div>
-                    </motion.div>
-                  );
-                })}
+              <div className="overflow-x-auto px-4 pb-2 [scrollbar-width:none] [-ms-overflow-style:none]">
+                <div className="flex gap-3 w-max snap-x snap-mandatory pr-4">
+                  {reviews.map((review, i) => (
+                    <div key={`${review.name}-${i}`} className="w-[84vw] max-w-[340px] snap-center shrink-0">
+                      <ReviewCard review={review} i={i} />
+                    </div>
+                  ))}
+                </div>
               </div>
-            ))}
-          </div>
-        </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0, y: 60 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-80px" }}
+              transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
+              className="relative h-[560px] md:h-[680px] overflow-hidden"
+              onMouseEnter={() => setPaused(true)}
+              onMouseLeave={() => setPaused(false)}
+              onTouchStart={() => setPaused(true)}
+              onTouchEnd={() => setPaused(false)}
+            >
+              {/* Top + bottom fades */}
+              <div className="pointer-events-none absolute top-0 left-0 right-0 h-20 z-10 bg-gradient-to-b from-muted/30 to-transparent" />
+              <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-20 z-10 bg-gradient-to-t from-muted/30 to-transparent" />
+
+              {/* Columns side by side — each column staggered fade-in */}
+              <div className="flex justify-center gap-3 h-full px-4">
+                {columns.map((col, ci) => (
+                  col.length > 0 && (
+                    <motion.div
+                      key={ci}
+                      initial={{ opacity: 0, y: 40 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true, margin: "-40px" }}
+                      transition={{ duration: 0.7, delay: ci * 0.12, ease: [0.25, 0.46, 0.45, 0.94] }}
+                    >
+                      <ScrollColumn
+                        reviews={col}
+                        duration={baseDuration + ci * 4}
+                        delay={-(ci * 3)}
+                        paused={paused}
+                        direction={ci % 2 === 0 ? "down" : "up"}
+                      />
+                    </motion.div>
+                  )
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </>
       )}
     </section>
   );
