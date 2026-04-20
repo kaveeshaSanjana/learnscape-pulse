@@ -5,14 +5,21 @@ import winsLogo from "@/assets/wins-logo.png";
 
 const sihasmaLogo: string | null = null;
 
-// Pin positions on the long world map projection
+// Pin positions across all continents - global distribution
 const locations = [
-  { top: "32%", left: "52%" }, // Europe
-  { top: "45%", left: "60%" }, // Middle East
-  { top: "58%", left: "55%" }, // Africa
-  { top: "50%", left: "70%" }, // South Asia
-  { top: "60%", left: "80%" }, // SE Asia
-  { top: "35%", left: "80%" }, // East Asia
+  { top: "35%", left: "15%" }, // North America - West Coast
+  { top: "40%", left: "25%" }, // North America - East Coast
+  { top: "70%", left: "28%" }, // South America - Brazil
+  { top: "80%", left: "32%" }, // South America - Argentina
+  { top: "32%", left: "48%" }, // Europe - UK/Western
+  { top: "38%", left: "53%" }, // Europe - Central
+  { top: "55%", left: "50%" }, // Africa - Central
+  { top: "62%", left: "58%" }, // Africa - East
+  { top: "48%", left: "75%" }, // Asia - India
+  { top: "42%", left: "82%" }, // Asia - China
+  { top: "50%", left: "85%" }, // Southeast Asia
+  { top: "72%", left: "88%" }, // Australia
+  { top: "45%", left: "65%" }, // Middle East
 ];
 
 const institutes = [
