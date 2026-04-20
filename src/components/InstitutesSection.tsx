@@ -1,16 +1,17 @@
 import { motion } from "framer-motion";
 import { MapPin, Wifi, Users, Monitor } from "lucide-react";
-import sriLankaMap from "@/assets/sri-lanka-map.png";
+import worldGlobe from "@/assets/world-globe.png";
 import winsLogo from "@/assets/wins-logo.png";
 // Save sihasma-logo.png to src/assets/ to enable the logo below
 const sihasmaLogo: string | null = null;
 
+// Pin positions distributed across continents on the globe (Europe, Africa, Asia)
 const locations = [
-  { top: "58%", left: "38%" },
-  { top: "48%", left: "52%" },
-  { top: "78%", left: "42%" },
-  { top: "8%",  left: "48%" },
-  { top: "40%", left: "44%" },
+  { top: "28%", left: "42%" }, // Europe
+  { top: "38%", left: "48%" }, // Middle East
+  { top: "55%", left: "40%" }, // Africa
+  { top: "45%", left: "62%" }, // South Asia
+  { top: "62%", left: "38%" }, // Central Africa
 ];
 
 const institutes = [
@@ -72,7 +73,7 @@ const InstitutesSection = () => (
           className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-foreground leading-tight"
           style={{ fontFamily: "var(--font-heading)" }}
         >
-          ලන්කාවේ ඔනේම තැනක ඉදන්
+          ලෝකේ ඔනේම තැනක ඉදන්
           <span className="text-primary"> ආසාවෙන් ඉගෙනගන්න</span>
         </h2>
         <p
@@ -94,12 +95,12 @@ const InstitutesSection = () => (
           transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
           className="flex justify-center"
         >
-          <div className="relative w-[280px] sm:w-[340px] md:w-[400px] lg:w-full lg:max-w-[420px]">
+          <div className="relative w-[280px] sm:w-[340px] md:w-[400px] lg:w-full lg:max-w-[460px] aspect-square">
             <div className="absolute inset-0 bg-primary/15 blur-[80px] rounded-full scale-110" />
             <img
-              src={sriLankaMap}
-              alt="Sri Lanka Map"
-              className="relative w-full drop-shadow-2xl"
+              src={worldGlobe}
+              alt="World Globe"
+              className="relative w-full h-full object-contain drop-shadow-2xl"
               style={{ filter: "drop-shadow(0 0 24px hsl(var(--primary)/0.35))" }}
             />
             {locations.map((loc, i) => (
