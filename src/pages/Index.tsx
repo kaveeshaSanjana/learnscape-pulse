@@ -58,10 +58,6 @@ const Index = () => {
           </Suspense>
 
           <Suspense fallback={<SectionFallback />}>
-            <VideoGallerySection />
-          </Suspense>
-
-          <Suspense fallback={<SectionFallback />}>
             <ImageGallerySection />
           </Suspense>
 
