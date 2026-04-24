@@ -98,7 +98,7 @@ const sectionTheme = {
   "--border": "206 38% 86%",
   "--input": "206 38% 86%",
   "--ring": "206 88% 56%",
-} as React.CSSProperties;
+} as CSSProperties;
 
 const FeatureCard = ({ feature, index }: { feature: (typeof features)[0]; index: number }) => {
   const [hovered, setHovered] = useState(false);
