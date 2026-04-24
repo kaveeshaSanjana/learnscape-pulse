@@ -214,7 +214,13 @@ const AboutSection = () => (
         >
           What Makes Us{" "}
           <span className="relative inline-block">
-            <span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-r from-primary via-primary to-accent">
+            <span
+              className="relative z-10 text-transparent bg-clip-text"
+              style={{
+                backgroundImage:
+                  "linear-gradient(to right, hsl(var(--primary-vivid)), hsl(var(--primary)), hsl(var(--primary-deep)))",
+              }}
+            >
               Different
             </span>
             <motion.span
@@ -222,7 +228,7 @@ const AboutSection = () => (
               whileInView={{ scaleX: 1 }}
               viewport={{ once: true }}
               transition={{ duration: 0.7, delay: 0.6, ease: "easeOut" }}
-              className="absolute -bottom-2 left-0 right-0 h-3 bg-primary/10 rounded-full origin-left"
+              className="absolute -bottom-2 left-0 right-0 h-3 bg-primary/15 rounded-full origin-left"
             />
           </span>
         </h2>
