@@ -41,6 +41,14 @@ const GENDERS = [
   { value: 'OTHER', label: 'Other' },
 ];
 
+const SORT_OPTIONS = [
+  { value: 'createdAt', label: 'Joined Date' },
+  { value: 'fullName',  label: 'Name' },
+  { value: 'dateOfBirth', label: 'Date of Birth' },
+  { value: 'status',    label: 'Status' },
+  { value: 'school',    label: 'School' },
+];
+
 export default function AdminStudents() {
   const [students, setStudents] = useState<any[]>([]);
   const [totalStudents, setTotalStudents] = useState(0);
@@ -57,6 +65,17 @@ export default function AdminStudents() {
   const [showExport, setShowExport] = useState(false);
   const [exportCols, setExportCols] = useState<string[]>(['instituteId', 'barcodeId', 'fullName', 'email', 'phone', 'status']);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Filter state
+  const [showFilters, setShowFilters] = useState(false);
+  const [filterStatus, setFilterStatus] = useState('');
+  const [filterGender, setFilterGender] = useState('');
+  const [filterDobFrom, setFilterDobFrom] = useState('');
+  const [filterDobTo, setFilterDobTo] = useState('');
+  const [filterJoinedFrom, setFilterJoinedFrom] = useState('');
+  const [filterJoinedTo, setFilterJoinedTo] = useState('');
+  const [sortBy, setSortBy] = useState('createdAt');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   const EXPORT_COLUMNS = [
     { key: 'userId',         label: 'User ID' },
@@ -121,10 +140,24 @@ export default function AdminStudents() {
     setShowExport(false);
   };
 
-  const load = useCallback((searchTerm?: string) => {
+  const load = useCallback((opts?: {
+    searchTerm?: string;
+    status?: string; gender?: string;
+    dobFrom?: string; dobTo?: string;
+    joinedFrom?: string; joinedTo?: string;
+    sortBy?: string; sortOrder?: string;
+  }) => {
     setLoading(true);
-    const params: any = { limit: 200 };
-    if (searchTerm) params.search = searchTerm;
+    const params: any = { limit: 5000 };
+    if (opts?.searchTerm)  params.search      = opts.searchTerm;
+    if (opts?.status)      params.status      = opts.status;
+    if (opts?.gender)      params.gender      = opts.gender;
+    if (opts?.dobFrom)     params.dobFrom     = opts.dobFrom;
+    if (opts?.dobTo)       params.dobTo       = opts.dobTo;
+    if (opts?.joinedFrom)  params.joinedFrom  = opts.joinedFrom;
+    if (opts?.joinedTo)    params.joinedTo    = opts.joinedTo;
+    if (opts?.sortBy)      params.sortBy      = opts.sortBy;
+    if (opts?.sortOrder)   params.sortOrder   = opts.sortOrder;
     api.get('/users/students', { params })
       .then(r => {
         const res = r.data;
@@ -135,7 +168,17 @@ export default function AdminStudents() {
       .finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  const loadWithCurrentFilters = useCallback((overrides?: { searchTerm?: string }) => {
+    load({
+      searchTerm: overrides?.searchTerm ?? search,
+      status: filterStatus, gender: filterGender,
+      dobFrom: filterDobFrom, dobTo: filterDobTo,
+      joinedFrom: filterJoinedFrom, joinedTo: filterJoinedTo,
+      sortBy, sortOrder,
+    });
+  }, [load, search, filterStatus, filterGender, filterDobFrom, filterDobTo, filterJoinedFrom, filterJoinedTo, sortBy, sortOrder]);
+
+  useEffect(() => { loadWithCurrentFilters(); }, [loadWithCurrentFilters]);
 
   useEffect(() => {
     return () => {
@@ -148,7 +191,16 @@ export default function AdminStudents() {
   const handleSearch = (value: string) => {
     setSearch(value);
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => load(value), 300);
+    debounceRef.current = setTimeout(() => loadWithCurrentFilters({ searchTerm: value }), 300);
+  };
+
+  const activeFilterCount = [filterStatus, filterGender, filterDobFrom || filterDobTo, filterJoinedFrom || filterJoinedTo].filter(Boolean).length;
+
+  const clearFilters = () => {
+    setFilterStatus(''); setFilterGender('');
+    setFilterDobFrom(''); setFilterDobTo('');
+    setFilterJoinedFrom(''); setFilterJoinedTo('');
+    setSortBy('createdAt'); setSortOrder('desc');
   };
 
   const openNew = () => { setForm({ ...emptyForm }); setEditingStudent(null); setShowForm(true); setError(''); };
@@ -237,10 +289,10 @@ export default function AdminStudents() {
       }
 
       if (editingStudent) {
-        load(search);
+        loadWithCurrentFilters();
       } else {
         setSearch('');
-        load();
+        loadWithCurrentFilters({ searchTerm: '' });
       }
     } catch (err: any) {
       const msg = err.response?.data?.message;
@@ -250,12 +302,12 @@ export default function AdminStudents() {
   };
 
   const handleStatusChange = async (id: string, status: string) => {
-    await api.patch(`/users/students/${id}/profile`, { status }).catch(() => {}); load(search);
+    await api.patch(`/users/students/${id}/profile`, { status }).catch(() => {}); loadWithCurrentFilters();
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm('Delete this student? This will remove all their data.')) return;
-    await api.delete(`/users/students/${id}`).catch(() => {}); load(search);
+    await api.delete(`/users/students/${id}`).catch(() => {}); loadWithCurrentFilters();
   };
 
   const handleAvatarFileChange = async (file?: File) => {
@@ -353,14 +405,27 @@ export default function AdminStudents() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold text-[hsl(var(--foreground))]">Students</h1>
-          <p className="text-slate-500 text-sm mt-0.5">{totalStudents} registered students</p>
+          <p className="text-slate-500 text-sm mt-0.5">
+            {loading ? 'Loading...' : `${students.length}${totalStudents > students.length ? ` of ${totalStudents}` : ''} students`}
+          </p>
         </div>
-          <div className="flex gap-2 w-full sm:w-auto">
+          <div className="flex gap-2 w-full sm:w-auto flex-wrap">
             <div className="relative flex-1 sm:flex-none">
               <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-              <input value={search} onChange={e => handleSearch(e.target.value)} placeholder="Search by name, email, institute ID, barcode, user ID..."
+              <input value={search} onChange={e => handleSearch(e.target.value)} placeholder="Search by name, email, ID, phone..."
                 className="pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-white text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 shadow-sm transition w-full sm:w-64" />
           </div>
+          {/* Filter toggle */}
+          <button
+            onClick={() => setShowFilters(f => !f)}
+            className={`relative px-3.5 py-2.5 rounded-xl border text-sm font-semibold flex items-center gap-1.5 transition ${showFilters || activeFilterCount > 0 ? 'border-blue-300 bg-blue-50 text-blue-700' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z" /></svg>
+            Filters
+            {activeFilterCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center">{activeFilterCount}</span>
+            )}
+          </button>
           <button
             onClick={() => setShowExport(true)}
             className="px-4 py-2.5 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 text-sm font-semibold hover:bg-emerald-100 transition flex items-center gap-1.5"
@@ -375,6 +440,126 @@ export default function AdminStudents() {
           </button>
         </div>
       </div>
+
+      {/* Filter panel */}
+      {showFilters && (
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Filters &amp; Sorting</p>
+            {(activeFilterCount > 0 || sortBy !== 'createdAt' || sortOrder !== 'desc') && (
+              <button onClick={clearFilters} className="text-xs text-red-500 font-semibold hover:text-red-700 transition">
+                Clear all
+              </button>
+            )}
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            {/* Status */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 mb-1.5">Status</label>
+              <select
+                value={filterStatus}
+                onChange={e => setFilterStatus(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+              >
+                <option value="">All statuses</option>
+                {STUDENT_STATUSES.map(s => <option key={s} value={s}>{s.charAt(0) + s.slice(1).toLowerCase()}</option>)}
+              </select>
+            </div>
+            {/* Gender */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 mb-1.5">Gender</label>
+              <select
+                value={filterGender}
+                onChange={e => setFilterGender(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+              >
+                <option value="">All genders</option>
+                {GENDERS.map(g => <option key={g.value} value={g.value}>{g.label}</option>)}
+              </select>
+            </div>
+            {/* Sort by */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 mb-1.5">Sort by</label>
+              <div className="flex gap-1">
+                <select
+                  value={sortBy}
+                  onChange={e => setSortBy(e.target.value)}
+                  className="flex-1 px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                >
+                  {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => setSortOrder(o => o === 'asc' ? 'desc' : 'asc')}
+                  className="px-2.5 py-2 rounded-xl border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 transition"
+                  title={sortOrder === 'asc' ? 'Ascending' : 'Descending'}
+                >
+                  {sortOrder === 'asc'
+                    ? <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" /></svg>
+                    : <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 4h13M3 8h9m-9 4h9m5-4v12m0 0l-4-4m4 4l4-4" /></svg>
+                  }
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Date ranges */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 mb-1.5">Date of Birth</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="date"
+                  value={filterDobFrom}
+                  onChange={e => setFilterDobFrom(e.target.value)}
+                  className="flex-1 px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                />
+                <span className="text-xs text-slate-400 flex-shrink-0">to</span>
+                <input
+                  type="date"
+                  value={filterDobTo}
+                  onChange={e => setFilterDobTo(e.target.value)}
+                  className="flex-1 px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                />
+                {(filterDobFrom || filterDobTo) && (
+                  <button onClick={() => { setFilterDobFrom(''); setFilterDobTo(''); }} className="text-[11px] text-slate-400 hover:text-slate-600 underline flex-shrink-0">Clear</button>
+                )}
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 mb-1.5">Joined Date</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="date"
+                  value={filterJoinedFrom}
+                  onChange={e => setFilterJoinedFrom(e.target.value)}
+                  className="flex-1 px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                />
+                <span className="text-xs text-slate-400 flex-shrink-0">to</span>
+                <input
+                  type="date"
+                  value={filterJoinedTo}
+                  onChange={e => setFilterJoinedTo(e.target.value)}
+                  className="flex-1 px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                />
+                {(filterJoinedFrom || filterJoinedTo) && (
+                  <button onClick={() => { setFilterJoinedFrom(''); setFilterJoinedTo(''); }} className="text-[11px] text-slate-400 hover:text-slate-600 underline flex-shrink-0">Clear</button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Active filter chips */}
+          {activeFilterCount > 0 && (
+            <div className="flex flex-wrap gap-1.5 pt-1 border-t border-slate-100">
+              {filterStatus && <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-50 border border-blue-200 text-xs font-semibold text-blue-700">Status: {filterStatus}<button onClick={() => setFilterStatus('')} className="ml-0.5 hover:text-blue-900">×</button></span>}
+              {filterGender && <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-50 border border-blue-200 text-xs font-semibold text-blue-700">Gender: {filterGender}<button onClick={() => setFilterGender('')} className="ml-0.5 hover:text-blue-900">×</button></span>}
+              {(filterDobFrom || filterDobTo) && <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-purple-50 border border-purple-200 text-xs font-semibold text-purple-700">DOB: {filterDobFrom || '…'} – {filterDobTo || '…'}<button onClick={() => { setFilterDobFrom(''); setFilterDobTo(''); }} className="ml-0.5 hover:text-purple-900">×</button></span>}
+              {(filterJoinedFrom || filterJoinedTo) && <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-xs font-semibold text-emerald-700">Joined: {filterJoinedFrom || '…'} – {filterJoinedTo || '…'}<button onClick={() => { setFilterJoinedFrom(''); setFilterJoinedTo(''); }} className="ml-0.5 hover:text-emerald-900">×</button></span>}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Export Modal */}
       {showExport && createPortal(
@@ -776,7 +961,7 @@ export default function AdminStudents() {
             <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-3">
               <svg className="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
             </div>
-            <p className="text-sm font-medium text-slate-500">{search ? 'No students match your search' : 'No students registered yet'}</p>
+            <p className="text-sm font-medium text-slate-500">{search || activeFilterCount > 0 ? 'No students match your search or filters' : 'No students registered yet'}</p>
           </div>
         ) : (
           <StickyDataTable
