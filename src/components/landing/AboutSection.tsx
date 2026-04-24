@@ -106,17 +106,20 @@ const FeatureCard = ({ feature, index }: { feature: typeof features[0]; index: n
       onMouseLeave={() => setHovered(false)}
       className="group relative"
     >
-      <div className="relative overflow-hidden rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm p-6 transition-all duration-500 hover:shadow-2xl hover:shadow-primary/10 hover:border-primary/30 hover:-translate-y-1">
+      <div className="relative overflow-hidden rounded-2xl border-2 border-primary/15 bg-card p-6 transition-all duration-500 hover:shadow-2xl hover:shadow-primary/25 hover:border-primary/50 hover:-translate-y-1">
         {/* Background glow on hover */}
         <motion.div
-          animate={{ opacity: hovered ? 0.08 : 0, scale: hovered ? 1.2 : 0.8 }}
+          animate={{ opacity: hovered ? 0.12 : 0, scale: hovered ? 1.2 : 0.8 }}
           transition={{ duration: 0.5 }}
           className="absolute -top-20 -right-20 w-48 h-48 rounded-full bg-primary blur-3xl pointer-events-none"
         />
 
         {/* Step number */}
         <div className="absolute top-4 right-4">
-          <span className="text-5xl font-extrabold text-foreground/[0.04] select-none" style={{ fontFamily: "var(--font-heading)" }}>
+          <span
+            className="text-5xl font-extrabold select-none"
+            style={{ fontFamily: "var(--font-heading)", color: "hsl(var(--primary) / 0.08)" }}
+          >
             {String(index + 1).padStart(2, "0")}
           </span>
         </div>
@@ -125,9 +128,17 @@ const FeatureCard = ({ feature, index }: { feature: typeof features[0]; index: n
         <motion.div
           animate={{ rotate: hovered ? 8 : 0, scale: hovered ? 1.1 : 1 }}
           transition={{ type: "spring", stiffness: 400, damping: 15 }}
-          className="relative z-10 w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-4 border border-primary/20 group-hover:bg-primary group-hover:border-primary transition-colors duration-500"
+          className="relative z-10 w-14 h-14 rounded-2xl flex items-center justify-center mb-4 border-2 border-primary/30 transition-colors duration-500"
+          style={{
+            background: hovered
+              ? "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-deep)))"
+              : "hsl(var(--primary) / 0.12)",
+          }}
         >
-          <feature.icon className="w-7 h-7 text-primary group-hover:text-primary-foreground transition-colors duration-500" />
+          <feature.icon
+            className="w-7 h-7 transition-colors duration-500"
+            style={{ color: hovered ? "hsl(var(--primary-foreground))" : "hsl(var(--primary-vivid))" }}
+          />
         </motion.div>
 
         {/* Content */}
@@ -139,8 +150,8 @@ const FeatureCard = ({ feature, index }: { feature: typeof features[0]; index: n
             {feature.titleEn}
           </h3>
           <h3
-            className="text-sm font-semibold text-primary/80 mb-3"
-            style={{ fontFamily: "var(--font-body)" }}
+            className="text-sm font-semibold mb-3"
+            style={{ fontFamily: "var(--font-body)", color: "hsl(var(--primary-vivid))" }}
           >
             {feature.titleSi}
           </h3>
@@ -156,7 +167,8 @@ const FeatureCard = ({ feature, index }: { feature: typeof features[0]; index: n
         <motion.div
           animate={{ scaleX: hovered ? 1 : 0 }}
           transition={{ duration: 0.4 }}
-          className="absolute bottom-0 left-0 right-0 h-[3px] bg-gradient-to-r from-primary to-accent origin-left"
+          className="absolute bottom-0 left-0 right-0 h-[3px] origin-left"
+          style={{ background: "linear-gradient(to right, hsl(var(--primary)), hsl(var(--primary-vivid)))" }}
         />
       </div>
     </motion.div>
