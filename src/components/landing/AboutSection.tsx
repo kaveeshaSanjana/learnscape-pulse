@@ -106,17 +106,20 @@ const FeatureCard = ({ feature, index }: { feature: typeof features[0]; index: n
       onMouseLeave={() => setHovered(false)}
       className="group relative"
     >
-      <div className="relative overflow-hidden rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm p-6 transition-all duration-500 hover:shadow-2xl hover:shadow-primary/10 hover:border-primary/30 hover:-translate-y-1">
+      <div className="relative overflow-hidden rounded-2xl border-2 border-primary/15 bg-card p-6 transition-all duration-500 hover:shadow-2xl hover:shadow-primary/25 hover:border-primary/50 hover:-translate-y-1">
         {/* Background glow on hover */}
         <motion.div
-          animate={{ opacity: hovered ? 0.08 : 0, scale: hovered ? 1.2 : 0.8 }}
+          animate={{ opacity: hovered ? 0.12 : 0, scale: hovered ? 1.2 : 0.8 }}
           transition={{ duration: 0.5 }}
           className="absolute -top-20 -right-20 w-48 h-48 rounded-full bg-primary blur-3xl pointer-events-none"
         />
 
         {/* Step number */}
         <div className="absolute top-4 right-4">
-          <span className="text-5xl font-extrabold text-foreground/[0.04] select-none" style={{ fontFamily: "var(--font-heading)" }}>
+          <span
+            className="text-5xl font-extrabold select-none"
+            style={{ fontFamily: "var(--font-heading)", color: "hsl(var(--primary) / 0.08)" }}
+          >
             {String(index + 1).padStart(2, "0")}
           </span>
         </div>
@@ -125,9 +128,17 @@ const FeatureCard = ({ feature, index }: { feature: typeof features[0]; index: n
         <motion.div
           animate={{ rotate: hovered ? 8 : 0, scale: hovered ? 1.1 : 1 }}
           transition={{ type: "spring", stiffness: 400, damping: 15 }}
-          className="relative z-10 w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-4 border border-primary/20 group-hover:bg-primary group-hover:border-primary transition-colors duration-500"
+          className="relative z-10 w-14 h-14 rounded-2xl flex items-center justify-center mb-4 border-2 border-primary/30 transition-colors duration-500"
+          style={{
+            background: hovered
+              ? "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-deep)))"
+              : "hsl(var(--primary) / 0.12)",
+          }}
         >
-          <feature.icon className="w-7 h-7 text-primary group-hover:text-primary-foreground transition-colors duration-500" />
+          <feature.icon
+            className="w-7 h-7 transition-colors duration-500"
+            style={{ color: hovered ? "hsl(var(--primary-foreground))" : "hsl(var(--primary-vivid))" }}
+          />
         </motion.div>
 
         {/* Content */}
@@ -139,8 +150,8 @@ const FeatureCard = ({ feature, index }: { feature: typeof features[0]; index: n
             {feature.titleEn}
           </h3>
           <h3
-            className="text-sm font-semibold text-primary/80 mb-3"
-            style={{ fontFamily: "var(--font-body)" }}
+            className="text-sm font-semibold mb-3"
+            style={{ fontFamily: "var(--font-body)", color: "hsl(var(--primary-vivid))" }}
           >
             {feature.titleSi}
           </h3>
@@ -156,7 +167,8 @@ const FeatureCard = ({ feature, index }: { feature: typeof features[0]; index: n
         <motion.div
           animate={{ scaleX: hovered ? 1 : 0 }}
           transition={{ duration: 0.4 }}
-          className="absolute bottom-0 left-0 right-0 h-[3px] bg-gradient-to-r from-primary to-accent origin-left"
+          className="absolute bottom-0 left-0 right-0 h-[3px] origin-left"
+          style={{ background: "linear-gradient(to right, hsl(var(--primary)), hsl(var(--primary-vivid)))" }}
         />
       </div>
     </motion.div>
@@ -179,12 +191,13 @@ const AboutSection = () => (
     <motion.div
       animate={{ y: [0, -40, 0], x: [0, 30, 0], scale: [1, 1.1, 1] }}
       transition={{ duration: 16, repeat: Infinity, ease: "easeInOut" }}
-      className="absolute top-10 left-[-10%] w-[400px] h-[400px] rounded-full bg-primary/5 blur-[100px]"
+      className="absolute top-10 left-[-10%] w-[400px] h-[400px] rounded-full bg-primary/10 blur-[100px]"
     />
     <motion.div
       animate={{ y: [0, 30, 0], x: [0, -20, 0], scale: [1, 1.15, 1] }}
       transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
-      className="absolute bottom-10 right-[-10%] w-[350px] h-[350px] rounded-full bg-accent/5 blur-[100px]"
+      className="absolute bottom-10 right-[-10%] w-[350px] h-[350px] rounded-full blur-[100px]"
+      style={{ backgroundColor: "hsl(var(--primary-vivid) / 0.08)" }}
     />
 
     <div className="container mx-auto px-4 relative z-10">
@@ -202,7 +215,13 @@ const AboutSection = () => (
         >
           What Makes Us{" "}
           <span className="relative inline-block">
-            <span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-r from-primary via-primary to-accent">
+            <span
+              className="relative z-10 text-transparent bg-clip-text"
+              style={{
+                backgroundImage:
+                  "linear-gradient(to right, hsl(var(--primary-vivid)), hsl(var(--primary)), hsl(var(--primary-deep)))",
+              }}
+            >
               Different
             </span>
             <motion.span
@@ -210,7 +229,7 @@ const AboutSection = () => (
               whileInView={{ scaleX: 1 }}
               viewport={{ once: true }}
               transition={{ duration: 0.7, delay: 0.6, ease: "easeOut" }}
-              className="absolute -bottom-2 left-0 right-0 h-3 bg-primary/10 rounded-full origin-left"
+              className="absolute -bottom-2 left-0 right-0 h-3 bg-primary/15 rounded-full origin-left"
             />
           </span>
         </h2>
@@ -268,7 +287,13 @@ const AboutSection = () => (
                 />
 
                 {/* Main circle */}
-                <div className="relative w-48 h-48 rounded-full bg-gradient-to-br from-primary via-primary to-accent flex items-center justify-center shadow-2xl shadow-primary/30">
+                <div
+                  className="relative w-48 h-48 rounded-full flex items-center justify-center shadow-2xl shadow-primary/40"
+                  style={{
+                    background:
+                      "linear-gradient(135deg, hsl(var(--primary-vivid)) 0%, hsl(var(--primary)) 50%, hsl(var(--primary-deep)) 100%)",
+                  }}
+                >
                   {/* Inner shimmer */}
                   <motion.div
                     animate={{ rotate: [-10, 10, -10] }}
@@ -341,7 +366,13 @@ const AboutSection = () => (
         >
           {/* Mobile center badge */}
           <motion.div variants={centerVariants} className="flex justify-center mb-6">
-            <div className="w-28 h-28 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-xl shadow-primary/20">
+            <div
+              className="w-28 h-28 rounded-full flex items-center justify-center shadow-xl shadow-primary/30"
+              style={{
+                background:
+                  "linear-gradient(135deg, hsl(var(--primary-vivid)) 0%, hsl(var(--primary)) 50%, hsl(var(--primary-deep)) 100%)",
+              }}
+            >
               <div className="text-center text-primary-foreground">
                 <p className="text-3xl font-extrabold leading-none" style={{ fontFamily: "var(--font-heading)" }}>6+</p>
                 <p className="text-[8px] font-bold mt-1 uppercase tracking-widest opacity-90">Features</p>
