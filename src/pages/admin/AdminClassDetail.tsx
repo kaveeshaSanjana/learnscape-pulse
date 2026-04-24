@@ -541,6 +541,12 @@ export default function AdminClassDetail() {
   const [reportIncludeRecordingAttendance, setReportIncludeRecordingAttendance] = useState(true);
   const [reportIncludeLiveAttendance, setReportIncludeLiveAttendance] = useState(true);
   const [reportRecordingMode, setReportRecordingMode] = useState<RecordingReportMode>('SUMMARY');
+  const [reportPhysFrom, setReportPhysFrom] = useState('');
+  const [reportPhysTo, setReportPhysTo] = useState('');
+  const [reportRecFrom, setReportRecFrom] = useState('');
+  const [reportRecTo, setReportRecTo] = useState('');
+  const [reportLiveFrom, setReportLiveFrom] = useState('');
+  const [reportLiveTo, setReportLiveTo] = useState('');
   const [reporting, setReporting] = useState(false);
   const [reportProgress, setReportProgress] = useState('');
   const [reportError, setReportError] = useState('');
@@ -3302,7 +3308,10 @@ export default function AdminClassDetail() {
             if (dates.length === 0) return;
 
             const monitorResponse = await api.get(`/attendance/class-attendance/class/${id}/monitor`, {
-              params: { from: dates[0], to: dates[dates.length - 1] },
+              params: {
+                from: reportPhysFrom || dates[0],
+                to: reportPhysTo || dates[dates.length - 1],
+              },
             });
 
             const slots = Array.isArray(monitorResponse.data?.slots) ? monitorResponse.data.slots : [];
@@ -3352,7 +3361,10 @@ export default function AdminClassDetail() {
       jobs.push(
         (async () => {
           try {
-            const response = await api.get(`/attendance/watch-sessions/class/${id}`);
+            const recParams: Record<string, string> = {};
+            if (reportRecFrom) recParams.from = reportRecFrom;
+            if (reportRecTo) recParams.to = reportRecTo;
+            const response = await api.get(`/attendance/watch-sessions/class/${id}`, { params: recParams });
             shared.recordingSessions = Array.isArray(response.data) ? response.data : [];
           } catch {
             shared.warnings.push('Recording attendance section could not load. Report created without recording activity.');
@@ -3365,7 +3377,10 @@ export default function AdminClassDetail() {
       jobs.push(
         (async () => {
           try {
-            const response = await api.get(`/attendance/live-sessions/class/${id}`);
+            const liveParams: Record<string, string> = {};
+            if (reportLiveFrom) liveParams.from = reportLiveFrom;
+            if (reportLiveTo) liveParams.to = reportLiveTo;
+            const response = await api.get(`/attendance/live-sessions/class/${id}`, { params: liveParams });
             const rows = Array.isArray(response.data) ? response.data : [];
             for (const row of rows) {
               if (!row?.userId) continue;
@@ -3519,6 +3534,9 @@ export default function AdminClassDetail() {
         includeRecordingAttendance: reportIncludeRecordingAttendance,
         includeLiveAttendance: reportIncludeLiveAttendance,
         recordingMode: reportRecordingMode,
+        physDateRange: reportPhysFrom || reportPhysTo ? { from: reportPhysFrom || undefined, to: reportPhysTo || undefined } : undefined,
+        recDateRange: reportRecFrom || reportRecTo ? { from: reportRecFrom || undefined, to: reportRecTo || undefined } : undefined,
+        liveDateRange: reportLiveFrom || reportLiveTo ? { from: reportLiveFrom || undefined, to: reportLiveTo || undefined } : undefined,
       },
       payments: {
         rows: paymentMonths.map((month: any) => ({
@@ -5327,6 +5345,78 @@ export default function AdminClassDetail() {
                   <span className="block text-[11px] text-slate-500 mt-0.5">Live class join status per recording</span>
                 </span>
               </label>
+
+              {(reportIncludePhysicalAttendance || reportIncludeRecordingAttendance || reportIncludeLiveAttendance) && (
+                <div className="rounded-2xl border border-blue-200 bg-white/90 p-3 space-y-3">
+                  <p className="text-xs font-semibold text-blue-800">
+                    Date Range Filters
+                    <span className="ml-1.5 font-normal text-blue-400">(optional — leave blank to include all dates)</span>
+                  </p>
+                  {reportIncludePhysicalAttendance && (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="w-36 shrink-0 text-[11px] text-slate-600">Physical Attendance</span>
+                      <input
+                        type="date"
+                        value={reportPhysFrom}
+                        onChange={(e) => setReportPhysFrom(e.target.value)}
+                        className="rounded-xl border border-blue-200 bg-white px-2 py-1.5 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                      />
+                      <span className="text-[11px] text-slate-400">to</span>
+                      <input
+                        type="date"
+                        value={reportPhysTo}
+                        onChange={(e) => setReportPhysTo(e.target.value)}
+                        className="rounded-xl border border-blue-200 bg-white px-2 py-1.5 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                      />
+                      {(reportPhysFrom || reportPhysTo) && (
+                        <button type="button" onClick={() => { setReportPhysFrom(''); setReportPhysTo(''); }} className="text-[11px] text-slate-400 hover:text-slate-600 underline">Clear</button>
+                      )}
+                    </div>
+                  )}
+                  {reportIncludeRecordingAttendance && (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="w-36 shrink-0 text-[11px] text-slate-600">Recording Attendance</span>
+                      <input
+                        type="date"
+                        value={reportRecFrom}
+                        onChange={(e) => setReportRecFrom(e.target.value)}
+                        className="rounded-xl border border-blue-200 bg-white px-2 py-1.5 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                      />
+                      <span className="text-[11px] text-slate-400">to</span>
+                      <input
+                        type="date"
+                        value={reportRecTo}
+                        onChange={(e) => setReportRecTo(e.target.value)}
+                        className="rounded-xl border border-blue-200 bg-white px-2 py-1.5 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                      />
+                      {(reportRecFrom || reportRecTo) && (
+                        <button type="button" onClick={() => { setReportRecFrom(''); setReportRecTo(''); }} className="text-[11px] text-slate-400 hover:text-slate-600 underline">Clear</button>
+                      )}
+                    </div>
+                  )}
+                  {reportIncludeLiveAttendance && (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="w-36 shrink-0 text-[11px] text-slate-600">Live Class Attendance</span>
+                      <input
+                        type="date"
+                        value={reportLiveFrom}
+                        onChange={(e) => setReportLiveFrom(e.target.value)}
+                        className="rounded-xl border border-blue-200 bg-white px-2 py-1.5 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                      />
+                      <span className="text-[11px] text-slate-400">to</span>
+                      <input
+                        type="date"
+                        value={reportLiveTo}
+                        onChange={(e) => setReportLiveTo(e.target.value)}
+                        className="rounded-xl border border-blue-200 bg-white px-2 py-1.5 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                      />
+                      {(reportLiveFrom || reportLiveTo) && (
+                        <button type="button" onClick={() => { setReportLiveFrom(''); setReportLiveTo(''); }} className="text-[11px] text-slate-400 hover:text-slate-600 underline">Clear</button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="rounded-2xl border border-blue-200 bg-white/95 p-3 space-y-3">
                 <div className="flex flex-wrap items-center gap-2">

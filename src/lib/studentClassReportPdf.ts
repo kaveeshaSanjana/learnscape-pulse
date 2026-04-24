@@ -10,6 +10,18 @@ import footerBannerUrl from '../assets/banners/footer.png?url';
 
 export type RecordingReportMode = 'SUMMARY' | 'FULL';
 
+export interface DateRange { from?: string; to?: string }
+
+function formatDateRangeLabel(range?: DateRange): string | undefined {
+  if (!range || (!range.from && !range.to)) return undefined;
+  const from = range.from ? fmtDate(new Date(`${range.from}T00:00:00`).toISOString()) : '';
+  const to   = range.to   ? fmtDate(new Date(`${range.to}T00:00:00`).toISOString())   : '';
+  if (from && to) return `${from} — ${to}`;
+  if (from) return `From ${from}`;
+  if (to)   return `Until ${to}`;
+  return undefined;
+}
+
 export interface StudentClassReportPayload {
   letterheadUrl?: string | null;
   classInfo: { id?: string; name?: string; subject?: string | null };
@@ -30,6 +42,9 @@ export interface StudentClassReportPayload {
     includeRecordingAttendance: boolean;
     includeLiveAttendance: boolean;
     recordingMode: RecordingReportMode;
+    physDateRange?: DateRange;
+    recDateRange?: DateRange;
+    liveDateRange?: DateRange;
   };
   payments?: {
     rows: Array<{ label: string; status: string; slipCount: number; latestSlipStatus?: string | null }>;
@@ -769,7 +784,8 @@ export async function buildStudentClassReportPdf(payload: StudentClassReportPayl
     const summary = payload.physicalAttendance?.summary;
     const pct = summary?.percentage ?? 0;
 
-    drawBannerSection(attendanceBanner, `Attendance rate: ${pct}%`);
+    const physRangeLabel = formatDateRangeLabel(payload.options.physDateRange);
+    drawBannerSection(attendanceBanner, physRangeLabel ? `Attendance rate: ${pct}% · ${physRangeLabel}` : `Attendance rate: ${pct}%`);
 
     drawStatRow([
       { label: 'Total',   value: String(summary?.total   ?? 0), color: C.slate },
@@ -817,7 +833,8 @@ export async function buildStudentClassReportPdf(payload: StudentClassReportPayl
   if (payload.options.includeRecordingAttendance) {
     const summaryRows = payload.recordingAttendance?.summaryRows ?? [];
 
-    drawBannerSection(recordingBanner, `${summaryRows.length} recording(s) tracked`);
+    const recRangeLabel = formatDateRangeLabel(payload.options.recDateRange);
+    drawBannerSection(recordingBanner, recRangeLabel ? `${summaryRows.length} recording(s) tracked · ${recRangeLabel}` : `${summaryRows.length} recording(s) tracked`);
 
     if (summaryRows.length > 0) {
       renderTable(
@@ -874,7 +891,9 @@ export async function buildStudentClassReportPdf(payload: StudentClassReportPayl
   if (payload.options.includeLiveAttendance) {
     const liveRows = payload.liveAttendance?.rows ?? [];
 
-    drawBannerSection(liveClassBanner, `${liveRows.filter((r) => r.status === 'JOINED').length} class(es) joined`);
+    const liveJoinedCount = liveRows.filter((r) => r.status === 'JOINED').length;
+    const liveRangeLabel = formatDateRangeLabel(payload.options.liveDateRange);
+    drawBannerSection(liveClassBanner, liveRangeLabel ? `${liveJoinedCount} class(es) joined · ${liveRangeLabel}` : `${liveJoinedCount} class(es) joined`);
 
     if (liveRows.length > 0) {
       renderBadgeTable(
