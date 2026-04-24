@@ -286,7 +286,13 @@ const AboutSection = () => (
                 />
 
                 {/* Main circle */}
-                <div className="relative w-48 h-48 rounded-full bg-gradient-to-br from-primary via-primary to-accent flex items-center justify-center shadow-2xl shadow-primary/30">
+                <div
+                  className="relative w-48 h-48 rounded-full flex items-center justify-center shadow-2xl shadow-primary/40"
+                  style={{
+                    background:
+                      "linear-gradient(135deg, hsl(var(--primary-vivid)) 0%, hsl(var(--primary)) 50%, hsl(var(--primary-deep)) 100%)",
+                  }}
+                >
                   {/* Inner shimmer */}
                   <motion.div
                     animate={{ rotate: [-10, 10, -10] }}
