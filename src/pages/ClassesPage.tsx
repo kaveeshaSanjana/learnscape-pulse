@@ -41,7 +41,12 @@ export default function ClassesPage() {
   useEffect(() => {
     api.get('/classes').then(r => {
       const visible = (r.data || []).filter((c: any) => {
-        if (user) return !['INACTIVE', 'PRIVATE'].includes(c.status);
+        if (user) {
+          if (['INACTIVE', 'PRIVATE'].includes(c.status)) return false;
+          // For ENROLLED_ONLY classes, only show to students who are enrolled
+          if (c.status === 'ENROLLED_ONLY' && user.role !== 'ADMIN' && c.isEnrolled === false) return false;
+          return true;
+        }
         return !['INACTIVE', 'PRIVATE', 'STUDENTS_ONLY', 'ENROLLED_ONLY', 'PAID_ONLY'].includes(c.status);
       });
       setClasses(visible);
