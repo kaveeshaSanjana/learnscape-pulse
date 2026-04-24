@@ -1,5 +1,7 @@
 import api from './api';
-import easyEnglishPdfHeader from '../assets/easy-english-pdf-header.png';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import easyEnglishPdfHeader from '../assets/easy-english-pdf-header.png?inline';
 import notoSansSinhalaUrl from '../assets/fonts/NotoSansSinhala.ttf?url';
 
 // ─── Section Banner Imports (Assume these paths exist) ────────────────────────
@@ -224,8 +226,6 @@ type RGB = [number, number, number];
 
 export async function exportStudentWatchDetailPdf(data: any): Promise<void> {
   if (!data) return;
-
-  const [{ jsPDF }, { default: autoTable }] = await Promise.all([import('jspdf'), import('jspdf-autotable')]);
 
   const student  = data.student    || {};
   const user     = student.user    || {};

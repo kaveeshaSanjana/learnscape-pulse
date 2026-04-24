@@ -1,4 +1,7 @@
 import api from './api';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import easyEnglishPdfHeader from '../assets/easy-english-pdf-header.png?inline';
 import notoSansSinhalaUrl from '../assets/fonts/NotoSansSinhala.ttf?url';
 import attendanceBannerUrl from '../assets/banners/pycycleattendancebanner.png?url';
 import recordingBannerUrl from '../assets/banners/recordinghistorybanner.png?url';
@@ -225,7 +228,6 @@ async function loadImage(rawUrl?: string | null): Promise<{ dataUrl: string; for
     const apiBase = typeof api.defaults.baseURL === 'string' ? api.defaults.baseURL : '';
     let apiOrigin = window.location.origin;
     if (/^https?:\/\//i.test(apiBase)) { try { apiOrigin = new URL(apiBase).origin; } catch { /**/ } }
-    if (targetUrl.origin !== window.location.origin && targetUrl.origin !== apiOrigin) return null;
     const controller = new AbortController();
     const tid = setTimeout(() => controller.abort(), 8000);
     const response = await fetch(targetUrl.toString(), { credentials: 'include', signal: controller.signal, headers: { Accept: 'image/*' } });
@@ -283,11 +285,6 @@ export function createStudentClassReportFileName(studentName: string, instituteI
 }
 
 export async function buildStudentClassReportPdf(payload: StudentClassReportPayload): Promise<Blob> {
-  const [{ jsPDF }, { default: autoTable }] = await Promise.all([
-    import('jspdf'),
-    import('jspdf-autotable'),
-  ]);
-
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const PW = doc.internal.pageSize.getWidth();
   const PH = doc.internal.pageSize.getHeight();
@@ -329,7 +326,7 @@ export async function buildStudentClassReportPdf(payload: StudentClassReportPayl
   const bannerW = PW - 28; // 182mm available between margins
 
   // ── Load all images in parallel ────────────────────────────────────────────
-  const preferredLetterheadUrl = payload.letterheadUrl || 'https://lms.thilinadhananjaya.lk/assets/easy-english-pdf-header.png';
+  const preferredLetterheadUrl = payload.letterheadUrl || easyEnglishPdfHeader;
   const [
     avatarImage,
     letterheadImage,
