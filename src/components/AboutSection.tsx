@@ -1,6 +1,6 @@
 import { motion, type Variants } from "framer-motion";
 import { BookOpen, GraduationCap, Video, FileText, Mic, Clock } from "lucide-react";
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 
 const features = [
   {
