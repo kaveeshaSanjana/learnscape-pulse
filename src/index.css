@@ -82,8 +82,10 @@ h1, h2, h3, h4, h5, h6 {
   --card-foreground: 216 38% 18%;
   --popover: 0 0% 100%;
   --popover-foreground: 216 38% 18%;
-  --primary: 206 88% 56%;
+  --primary: 210 95% 52%;
   --primary-foreground: 0 0% 100%;
+  --primary-vivid: 214 100% 50%;
+  --primary-deep: 218 90% 42%;
   --secondary: 205 80% 92%;
   --secondary-foreground: 210 70% 32%;
   --muted: 206 60% 94%;
