@@ -191,12 +191,13 @@ const AboutSection = () => (
     <motion.div
       animate={{ y: [0, -40, 0], x: [0, 30, 0], scale: [1, 1.1, 1] }}
       transition={{ duration: 16, repeat: Infinity, ease: "easeInOut" }}
-      className="absolute top-10 left-[-10%] w-[400px] h-[400px] rounded-full bg-primary/5 blur-[100px]"
+      className="absolute top-10 left-[-10%] w-[400px] h-[400px] rounded-full bg-primary/10 blur-[100px]"
     />
     <motion.div
       animate={{ y: [0, 30, 0], x: [0, -20, 0], scale: [1, 1.15, 1] }}
       transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
-      className="absolute bottom-10 right-[-10%] w-[350px] h-[350px] rounded-full bg-accent/5 blur-[100px]"
+      className="absolute bottom-10 right-[-10%] w-[350px] h-[350px] rounded-full blur-[100px]"
+      style={{ backgroundColor: "hsl(var(--primary-vivid) / 0.08)" }}
     />
 
     <div className="container mx-auto px-4 relative z-10">
