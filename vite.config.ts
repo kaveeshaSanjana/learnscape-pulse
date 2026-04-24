@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => {
   const devProxyTarget = env.VITE_DEV_PROXY_TARGET || 'http://127.0.0.1:3001'
 
   return {
-    base: '/',
+    base: mode === 'production' ? '/lms/' : '/',
     plugins: [
       react(),
       babel({ presets: [reactCompilerPreset()] }),

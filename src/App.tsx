@@ -1,5 +1,4 @@
 import { BrowserRouter, Routes, Route, Navigate, useParams, useSearchParams } from 'react-router-dom';
-import { useState } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { InstituteProvider, useInstitute } from './context/InstituteContext';
@@ -40,8 +39,6 @@ import StudentMonthRecAttendance from './pages/StudentMonthRecAttendance';
 import MyClassAttendancePage from './pages/MyClassAttendancePage';
 import ChangePasswordPage from './pages/ChangePasswordPage';
 import StudentProfilePage from './pages/StudentProfilePage';
-import MainLandingPage from './pages/MainLandingPage';
-
 import Layout from './components/Layout';
 import LandingStyleLoading from './components/LandingStyleLoading';
 import { getInstituteAdminPath } from './lib/instituteRoutes';
@@ -110,18 +107,6 @@ function MarkAttendanceExternalOnlyRedirect() {
   return <Navigate to={target} replace />;
 }
 
-function LandingPageView() {
-  const { user, loading } = useAuth();
-  const { selected } = useInstitute();
-
-  if (loading) return <LandingStyleLoading />;
-
-  if (user?.role === 'ADMIN' && selected) return <Navigate to={getInstituteAdminPath(selected.id)} replace />;
-  if (user?.role === 'STUDENT') return <Navigate to="/dashboard" replace />;
-
-  return <MainLandingPage />;
-}
-
 function AppRoutes() {
   const { loading } = useAuth();
 
@@ -143,7 +128,7 @@ function AppRoutes() {
       <Route path="lecture-live/:token" element={<LectureLiveJoinPage />} />
 
       <Route path="/" element={<Layout />}>
-        <Route index element={<LandingPageView />} />
+        <Route index element={<Navigate to="/login" replace />} />
         <Route path="institute/:instituteId" element={<ClassesPage />} />
         <Route path="classes" element={<ClassesPage />} />
         <Route path="institute/:instituteId/classes" element={<ClassesPage />} />
