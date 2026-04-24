@@ -1,75 +1,77 @@
-# React + TypeScript + Vite
+# ThilinaDhananjaya LMS Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Production React + TypeScript + Vite frontend.
 
-Currently, two official plugins are available:
+## Run Local
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
-
-Note: This will impact Vite dev & build performances.
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Build
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+```bash
+npm run build
+```
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+Build output is created in dist.
+
+## Upload Dist To S3
+
+The upload script now reads AWS settings from shell variables and from .env /.env.production.
+
+Required:
+- AWS_S3_BUCKET
+
+Optional:
+- AWS_REGION (default: us-east-1)
+- AWS_S3_PREFIX
+- AWS_S3_ENDPOINT
+- BUILD_DIR (default: dist)
+
+Example .env.production:
+
+```env
+AWS_S3_BUCKET=your-bucket-name
+AWS_REGION=us-east-1
+AWS_S3_PREFIX=
+```
+
+Upload:
+
+```bash
+npm run upload
+```
+
+Build and upload together:
+
+```bash
+npm run deploy
+```
+
+## Make The Site Open Correctly After Upload
+
+Upload alone is not enough. Hosting must serve index.html to browsers.
+
+For CloudFront + S3:
+- Default Root Object: index.html
+- Custom error response: 403 -> /index.html (HTTP 200)
+- Custom error response: 404 -> /index.html (HTTP 200)
+- Ensure CloudFront has read access to bucket (OAC/OAI + bucket policy)
+
+For S3 Static Website Hosting:
+- Enable static website hosting
+- Index document: index.html
+- Error document: index.html
+- Bucket/object read access must allow the website endpoint to read files
+
+## Base Path
+
+Default base path is /.
+
+If deploying under a subpath, set:
+
+```env
+VITE_BASE_PATH=/your-subpath/
 ```

@@ -6,16 +6,11 @@
   "scripts": {
     "dev": "npm run dev:app",
     "dev:app": "node ./scripts/free-port.mjs 8080 && vite --port 8080 --strictPort",
-    "dev:landing": "node ./scripts/free-port.mjs 8081 && npm --prefix landing run dev -- --port 8081 --strictPort",
-    "build": "npm run build:separate",
+    "build": "vite build",
     "build:app": "vite build",
-    "build:separate": "npm --prefix landing run build && vite build",
-    "build:landing": "npm --prefix landing run build",
     "build:dev": "vite build --mode development",
-    "build:cloudfront": "npm --prefix landing run build:embed && vite build && node ./scripts/merge-landing-dist.mjs",
     "upload": "node ./scripts/upload-dist.mjs",
-    "upload:separate": "APP_PREFIX=lms LANDING_PREFIX=landing node ./scripts/upload-separate-dist.mjs",
-    "deploy": "npm run build:separate && npm run upload:separate",
+    "deploy": "npm run build && npm run upload",
     "lint": "eslint .",
     "preview": "vite preview"
   },

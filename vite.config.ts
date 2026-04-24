@@ -1,6 +1,5 @@
 import { defineConfig, loadEnv } from 'vite'
-import react, { reactCompilerPreset } from '@vitejs/plugin-react'
-import babel from '@rolldown/plugin-babel'
+import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import path from 'node:path'
 
@@ -8,12 +7,12 @@ import path from 'node:path'
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   const devProxyTarget = env.VITE_DEV_PROXY_TARGET || 'http://127.0.0.1:3001'
+  const basePath = env.VITE_BASE_PATH || '/'
 
   return {
-    base: mode === 'production' ? '/lms/' : '/',
+    base: basePath,
     plugins: [
       react(),
-      babel({ presets: [reactCompilerPreset()] }),
       tailwindcss(),
     ],
     resolve: {

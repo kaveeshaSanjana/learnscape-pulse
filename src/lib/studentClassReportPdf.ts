@@ -1,5 +1,4 @@
 import api from './api';
-import easyEnglishPdfHeader from '../assets/easy-english-pdf-header.png';
 import notoSansSinhalaUrl from '../assets/fonts/NotoSansSinhala.ttf?url';
 import attendanceBannerUrl from '../assets/banners/pycycleattendancebanner.png?url';
 import recordingBannerUrl from '../assets/banners/recordinghistorybanner.png?url';
@@ -197,8 +196,11 @@ function resolveAssetUrl(rawUrl?: string): string {
   if (/^(https?:|data:|blob:)/i.test(value)) return value;
   if (value.startsWith('//')) return `${window.location.protocol}${value}`;
   const apiBase = typeof api.defaults.baseURL === 'string' ? api.defaults.baseURL : '';
-  let origin = window.location.origin;
+  let origin = window.location.origin; // Use frontend origin for assets
   if (/^https?:\/\//i.test(apiBase)) { try { origin = new URL(apiBase).origin; } catch { /**/ } }
+  // For frontend assets (like /assets/), use frontend origin
+  if (value.startsWith('/assets/') || value.startsWith('/')) return `${window.location.origin}${value}`;
+  // For other relative URLs, assume they are from API
   if (value.startsWith('/')) return `${origin}${value}`;
   return `${origin}/${value.replace(/^\/+/, '')}`;
 }
@@ -327,7 +329,7 @@ export async function buildStudentClassReportPdf(payload: StudentClassReportPayl
   const bannerW = PW - 28; // 182mm available between margins
 
   // ── Load all images in parallel ────────────────────────────────────────────
-  const preferredLetterheadUrl = payload.letterheadUrl || easyEnglishPdfHeader;
+  const preferredLetterheadUrl = payload.letterheadUrl || 'https://lms.thilinadhananjaya.lk/assets/easy-english-pdf-header.png';
   const [
     avatarImage,
     letterheadImage,
