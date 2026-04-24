@@ -107,21 +107,21 @@ const FeatureCard = ({ feature, index }: { feature: typeof features[0]; index: n
       className="group relative"
     >
       <div className="relative overflow-hidden rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm p-6 transition-all duration-500 hover:shadow-2xl hover:shadow-primary/10 hover:border-primary/30 hover:-translate-y-1">
-        {/* Background glow on hover */}
         <motion.div
           animate={{ opacity: hovered ? 0.08 : 0, scale: hovered ? 1.2 : 0.8 }}
           transition={{ duration: 0.5 }}
           className="absolute -top-20 -right-20 w-48 h-48 rounded-full bg-primary blur-3xl pointer-events-none"
         />
 
-        {/* Step number */}
         <div className="absolute top-4 right-4">
-          <span className="text-5xl font-extrabold text-foreground/[0.04] select-none" style={{ fontFamily: "var(--font-heading)" }}>
+          <span
+            className="text-5xl font-extrabold text-foreground/[0.04] select-none"
+            style={{ fontFamily: "var(--font-heading)" }}
+          >
             {String(index + 1).padStart(2, "0")}
           </span>
         </div>
 
-        {/* Icon */}
         <motion.div
           animate={{ rotate: hovered ? 8 : 0, scale: hovered ? 1.1 : 1 }}
           transition={{ type: "spring", stiffness: 400, damping: 15 }}
@@ -130,7 +130,6 @@ const FeatureCard = ({ feature, index }: { feature: typeof features[0]; index: n
           <feature.icon className="w-7 h-7 text-primary group-hover:text-primary-foreground transition-colors duration-500" />
         </motion.div>
 
-        {/* Content */}
         <div className="relative z-10">
           <h3
             className="text-lg font-bold text-foreground mb-1 group-hover:text-primary transition-colors duration-300"
@@ -144,15 +143,10 @@ const FeatureCard = ({ feature, index }: { feature: typeof features[0]; index: n
           >
             {feature.titleSi}
           </h3>
-          <p className="text-sm text-muted-foreground leading-relaxed mb-2">
-            {feature.descEn}
-          </p>
-          <p className="text-xs text-muted-foreground/80 leading-relaxed">
-            {feature.descSi}
-          </p>
+          <p className="text-sm text-muted-foreground leading-relaxed mb-2">{feature.descEn}</p>
+          <p className="text-xs text-muted-foreground/80 leading-relaxed">{feature.descSi}</p>
         </div>
 
-        {/* Bottom accent line */}
         <motion.div
           animate={{ scaleX: hovered ? 1 : 0 }}
           transition={{ duration: 0.4 }}
@@ -165,7 +159,6 @@ const FeatureCard = ({ feature, index }: { feature: typeof features[0]; index: n
 
 const AboutSection = () => (
   <section className="relative py-24 md:py-32 overflow-hidden" id="about">
-    {/* Backgrounds */}
     <div className="absolute inset-0 bg-background" />
     <div
       className="absolute inset-0 opacity-[0.015]"
@@ -175,7 +168,6 @@ const AboutSection = () => (
       }}
     />
 
-    {/* Ambient blobs */}
     <motion.div
       animate={{ y: [0, -40, 0], x: [0, 30, 0], scale: [1, 1.1, 1] }}
       transition={{ duration: 16, repeat: Infinity, ease: "easeInOut" }}
@@ -188,7 +180,6 @@ const AboutSection = () => (
     />
 
     <div className="container mx-auto px-4 relative z-10">
-      {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -225,7 +216,6 @@ const AboutSection = () => (
         </motion.p>
       </motion.div>
 
-      {/* Desktop: 3-column grid with center circle */}
       <div className="hidden lg:block">
         <motion.div
           variants={containerVariants}
@@ -235,14 +225,12 @@ const AboutSection = () => (
           className="relative max-w-6xl mx-auto"
         >
           <div className="grid grid-cols-3 gap-6 items-start">
-            {/* Left column */}
             <div className="space-y-6 pt-8">
               {features.slice(0, 2).map((f, i) => (
                 <FeatureCard key={f.titleEn} feature={f} index={i} />
               ))}
             </div>
 
-            {/* Center column */}
             <div className="flex flex-col items-center gap-8">
               <motion.div variants={centerVariants} className="relative">
                 {[0, 1, 2].map((i) => (
@@ -296,7 +284,6 @@ const AboutSection = () => (
               ))}
             </div>
 
-            {/* Right column */}
             <div className="space-y-6 pt-8">
               {features.slice(4, 6).map((f, i) => (
                 <FeatureCard key={f.titleEn} feature={f} index={i + 4} />
@@ -306,7 +293,6 @@ const AboutSection = () => (
         </motion.div>
       </div>
 
-      {/* Tablet: 2 columns */}
       <div className="hidden md:block lg:hidden">
         <motion.div
           variants={containerVariants}
@@ -321,7 +307,6 @@ const AboutSection = () => (
         </motion.div>
       </div>
 
-      {/* Mobile: single column */}
       <div className="md:hidden">
         <motion.div
           variants={containerVariants}
