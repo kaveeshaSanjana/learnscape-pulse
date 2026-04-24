@@ -3,61 +3,61 @@ import { BookOpen, GraduationCap, Video, FileText, Mic, Clock, User } from "luci
 import { useState } from "react";
 
 const features = [
-  { 
-    icon: Video, 
-    titleEn: "Live Online Classes", 
+  {
+    icon: Video,
+    titleEn: "Live Online Classes",
     titleSi: "සජීවී අන්තර්ජාල පන්තිය",
-    descEn: "Interactive sessions with real-time Q&A and discussion.", 
-    descSi: "සිසුන්ට ප්‍රශ්ན විමසීමට සහ සාකච්ඡා කිරීමට අවස්ථා සමඟ අන්තයාබේධී ගිණුම් සතුන්"
+    descEn: "Interactive sessions with real-time Q&A and discussion.",
+    descSi: "සිසුන්ට ප්‍රශ්න විමසීමට සහ සාකච්ඡා කිරීමට අවස්ථා සමඟ අන්තයාබේධී ගිණුම් සතුන්",
   },
-  { 
-    icon: FileText, 
-    titleEn: "Structured Notes", 
+  {
+    icon: FileText,
+    titleEn: "Structured Notes",
     titleSi: "ව්‍යුහගත සටහන්",
-    descEn: "Comprehensive study materials crafted for A/L & O/L syllabi.", 
-    descSi: "A/L සහ O/L විෂයවලට සකස් කරන ලද සම්පූර්ණ අධ්‍යයන ද්‍රව්‍ය"
+    descEn: "Comprehensive study materials crafted for A/L & O/L syllabi.",
+    descSi: "A/L සහ O/L විෂයවලට සකස් කරන ලද සම්පූර්ණ අධ්‍යයන ද්‍රව්‍ය",
   },
-  { 
-    icon: Mic, 
-    titleEn: "Speaking Practice", 
+  {
+    icon: Mic,
+    titleEn: "Speaking Practice",
     titleSi: "කතා කිරීමේ පුහුණුව",
-    descEn: "Build fluency through guided conversation exercises.", 
-    descSi: "මඟපෙන්වන සංවාද අභ්‍යාස හරහා කතා කිරීමේ දක්ෂතාවය සහ ස්වයංවිශ්වාසය වර්ධනය කරගන්න"
+    descEn: "Build fluency through guided conversation exercises.",
+    descSi: "මඟපෙන්වන සංවාද අභ්‍යාස හරහා කතා කිරීමේ දක්ෂතාවය සහ ස්වයංවිශ්වාසය වර්ධනය කරගන්න",
   },
-  { 
-    icon: GraduationCap, 
-    titleEn: "Exam Strategy", 
+  {
+    icon: GraduationCap,
+    titleEn: "Exam Strategy",
     titleSi: "පරීක්‍ෂණ උපක්‍රමය",
-    descEn: "Proven techniques to maximize marks in every paper.", 
-    descSi: "සෑම පත්‍රයකම ලකුණු උපරිම කිරීම"
+    descEn: "Proven techniques to maximize marks in every paper.",
+    descSi: "සෑම පත්‍රයකම ලකුණු උපරිම කිරීම",
   },
-  { 
-    icon: BookOpen, 
-    titleEn: "Grammar Mastery", 
+  {
+    icon: BookOpen,
+    titleEn: "Grammar Mastery",
     titleSi: "ව්‍යාකරණ දක්ෂතා",
-    descEn: "Clear, simplified approach to English grammar rules.", 
-    descSi: "ඉංග්‍රීසි ව්‍යාකරණ නියම පිළිබඳ පැහැදිලි සරල ක්‍රමවේදය"
+    descEn: "Clear, simplified approach to English grammar rules.",
+    descSi: "ඉංග්‍රීසි ව්‍යාකරණ නියම පිළිබඳ පැහැදිලි සරල ක්‍රමවේදය",
   },
-  { 
-    icon: Clock, 
-    titleEn: "Class Recordings", 
+  {
+    icon: Clock,
+    titleEn: "Class Recordings",
     titleSi: "පන්ති පටිගත කිරීම්",
-    descEn: "Students who miss classes get access to recorded sessions.", 
-    descSi: "පන්තියට නොපැමිණෙන සිසුන්ට පටිගත කරන ලද සැසි සමඟ ප්‍රවේශය ලබා දේ"
+    descEn: "Students who miss classes get access to recorded sessions.",
+    descSi: "පන්තියට නොපැමිණෙන සිසුන්ට පටිගත කරන ලද සැසි සමඟ ප්‍රවේශය ලබා දේ",
   },
-  { 
-    icon: FileText, 
-    titleEn: "Daily Homework Checking", 
+  {
+    icon: FileText,
+    titleEn: "Daily Homework Checking",
     titleSi: "දෛනික ගෙදරට කරන කාර්ය පරීක්‍ෂණය",
-    descEn: "Regular assignment review and feedback for each student.", 
-    descSi: "සෑම සිසුනට නිතිපතා නිවේදන සමාලෝචනය සහ ප්‍රතිපෝෂණ"
+    descEn: "Regular assignment review and feedback for each student.",
+    descSi: "සෑම සිසුනට නිතිපතා නිවේදන සමාලෝචනය සහ ප්‍රතිපෝෂණ",
   },
-  { 
-    icon: User, 
-    titleEn: "Personalized Attention", 
+  {
+    icon: User,
+    titleEn: "Personalized Attention",
     titleSi: "පුද්ගලිකව අවධානය",
-    descEn: "Individual focus and customized guidance for every student.", 
-    descSi: "සෑම සිසුනට පුද්ගලිකවම අවධානය සහ අනුකූලිත පguidance"
+    descEn: "Individual focus and customized guidance for every student.",
+    descSi: "සෑම සිසුනට පුද්ගලිකවම අවධානය සහ අනුකූලිත මඟපෙන්වීම",
   },
 ];
 
@@ -107,21 +107,21 @@ const FeatureCard = ({ feature, index }: { feature: typeof features[0]; index: n
       className="group relative"
     >
       <div className="relative overflow-hidden rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm p-6 transition-all duration-500 hover:shadow-2xl hover:shadow-primary/10 hover:border-primary/30 hover:-translate-y-1">
-        {/* Background glow on hover */}
         <motion.div
           animate={{ opacity: hovered ? 0.08 : 0, scale: hovered ? 1.2 : 0.8 }}
           transition={{ duration: 0.5 }}
           className="absolute -top-20 -right-20 w-48 h-48 rounded-full bg-primary blur-3xl pointer-events-none"
         />
 
-        {/* Step number */}
         <div className="absolute top-4 right-4">
-          <span className="text-5xl font-extrabold text-foreground/[0.04] select-none" style={{ fontFamily: "var(--font-heading)" }}>
+          <span
+            className="text-5xl font-extrabold text-foreground/[0.04] select-none"
+            style={{ fontFamily: "var(--font-heading)" }}
+          >
             {String(index + 1).padStart(2, "0")}
           </span>
         </div>
 
-        {/* Icon */}
         <motion.div
           animate={{ rotate: hovered ? 8 : 0, scale: hovered ? 1.1 : 1 }}
           transition={{ type: "spring", stiffness: 400, damping: 15 }}
@@ -130,7 +130,6 @@ const FeatureCard = ({ feature, index }: { feature: typeof features[0]; index: n
           <feature.icon className="w-7 h-7 text-primary group-hover:text-primary-foreground transition-colors duration-500" />
         </motion.div>
 
-        {/* Content */}
         <div className="relative z-10">
           <h3
             className="text-lg font-bold text-foreground mb-1 group-hover:text-primary transition-colors duration-300"
@@ -144,15 +143,10 @@ const FeatureCard = ({ feature, index }: { feature: typeof features[0]; index: n
           >
             {feature.titleSi}
           </h3>
-          <p className="text-sm text-muted-foreground leading-relaxed mb-2">
-            {feature.descEn}
-          </p>
-          <p className="text-xs text-muted-foreground/80 leading-relaxed">
-            {feature.descSi}
-          </p>
+          <p className="text-sm text-muted-foreground leading-relaxed mb-2">{feature.descEn}</p>
+          <p className="text-xs text-muted-foreground/80 leading-relaxed">{feature.descSi}</p>
         </div>
 
-        {/* Bottom accent line */}
         <motion.div
           animate={{ scaleX: hovered ? 1 : 0 }}
           transition={{ duration: 0.4 }}
@@ -165,7 +159,6 @@ const FeatureCard = ({ feature, index }: { feature: typeof features[0]; index: n
 
 const AboutSection = () => (
   <section className="relative py-24 md:py-32 overflow-hidden" id="about">
-    {/* Backgrounds */}
     <div className="absolute inset-0 bg-background" />
     <div
       className="absolute inset-0 opacity-[0.015]"
@@ -175,7 +168,6 @@ const AboutSection = () => (
       }}
     />
 
-    {/* Ambient blobs */}
     <motion.div
       animate={{ y: [0, -40, 0], x: [0, 30, 0], scale: [1, 1.1, 1] }}
       transition={{ duration: 16, repeat: Infinity, ease: "easeInOut" }}
@@ -188,7 +180,6 @@ const AboutSection = () => (
     />
 
     <div className="container mx-auto px-4 relative z-10">
-      {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -225,7 +216,6 @@ const AboutSection = () => (
         </motion.p>
       </motion.div>
 
-      {/* Desktop: 3-column grid with center circle */}
       <div className="hidden lg:block">
         <motion.div
           variants={containerVariants}
@@ -234,42 +224,32 @@ const AboutSection = () => (
           viewport={{ once: true, margin: "-80px" }}
           className="relative max-w-6xl mx-auto"
         >
-          {/* Grid with center piece */}
           <div className="grid grid-cols-3 gap-6 items-start">
-            {/* Left column */}
             <div className="space-y-6 pt-8">
               {features.slice(0, 2).map((f, i) => (
                 <FeatureCard key={f.titleEn} feature={f} index={i} />
               ))}
             </div>
 
-            {/* Center column - circle + 1 card below */}
             <div className="flex flex-col items-center gap-8">
-              {/* Center circle */}
               <motion.div variants={centerVariants} className="relative">
-                {/* Pulse rings */}
                 {[0, 1, 2].map((i) => (
                   <motion.div
                     key={i}
                     variants={pulseRingVariants}
                     custom={i}
                     className="absolute inset-0 rounded-full border border-primary/10"
-                    style={{
-                      transform: `scale(${1.3 + i * 0.25})`,
-                    }}
+                    style={{ transform: `scale(${1.3 + i * 0.25})` }}
                   />
                 ))}
 
-                {/* Rotating dashed ring */}
                 <motion.div
                   animate={{ rotate: 360 }}
                   transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
                   className="absolute -inset-6 rounded-full border-2 border-dashed border-primary/15"
                 />
 
-                {/* Main circle */}
                 <div className="relative w-48 h-48 rounded-full bg-gradient-to-br from-primary via-primary to-accent flex items-center justify-center shadow-2xl shadow-primary/30">
-                  {/* Inner shimmer */}
                   <motion.div
                     animate={{ rotate: [-10, 10, -10] }}
                     transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
@@ -299,13 +279,11 @@ const AboutSection = () => (
                 </div>
               </motion.div>
 
-              {/* Cards under center */}
               {features.slice(2, 4).map((f, i) => (
                 <FeatureCard key={f.titleEn} feature={f} index={i + 2} />
               ))}
             </div>
 
-            {/* Right column */}
             <div className="space-y-6 pt-8">
               {features.slice(4, 6).map((f, i) => (
                 <FeatureCard key={f.titleEn} feature={f} index={i + 4} />
@@ -315,7 +293,6 @@ const AboutSection = () => (
         </motion.div>
       </div>
 
-      {/* Tablet: 2 columns */}
       <div className="hidden md:block lg:hidden">
         <motion.div
           variants={containerVariants}
@@ -330,7 +307,6 @@ const AboutSection = () => (
         </motion.div>
       </div>
 
-      {/* Mobile: single column */}
       <div className="md:hidden">
         <motion.div
           variants={containerVariants}
@@ -339,7 +315,6 @@ const AboutSection = () => (
           viewport={{ once: true }}
           className="space-y-4 max-w-sm mx-auto"
         >
-          {/* Mobile center badge */}
           <motion.div variants={centerVariants} className="flex justify-center mb-6">
             <div className="w-28 h-28 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-xl shadow-primary/20">
               <div className="text-center text-primary-foreground">
