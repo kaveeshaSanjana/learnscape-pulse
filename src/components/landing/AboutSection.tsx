@@ -365,7 +365,13 @@ const AboutSection = () => (
         >
           {/* Mobile center badge */}
           <motion.div variants={centerVariants} className="flex justify-center mb-6">
-            <div className="w-28 h-28 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-xl shadow-primary/20">
+            <div
+              className="w-28 h-28 rounded-full flex items-center justify-center shadow-xl shadow-primary/30"
+              style={{
+                background:
+                  "linear-gradient(135deg, hsl(var(--primary-vivid)) 0%, hsl(var(--primary)) 50%, hsl(var(--primary-deep)) 100%)",
+              }}
+            >
               <div className="text-center text-primary-foreground">
                 <p className="text-3xl font-extrabold leading-none" style={{ fontFamily: "var(--font-heading)" }}>6+</p>
                 <p className="text-[8px] font-bold mt-1 uppercase tracking-widest opacity-90">Features</p>
