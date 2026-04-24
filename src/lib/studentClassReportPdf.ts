@@ -239,13 +239,16 @@ async function loadImage(rawUrl?: string | null): Promise<{ dataUrl: string; for
     if (/^data:image\//i.test(resolved))
       return { dataUrl: resolved, format: resolved.toLowerCase().startsWith('data:image/png') ? 'PNG' : 'JPEG' };
     const targetUrl = new URL(resolved, window.location.origin);
-    // Allow both the frontend origin and the API server origin (avatars are served from the API host)
-    const apiBase = typeof api.defaults.baseURL === 'string' ? api.defaults.baseURL : '';
-    let apiOrigin = window.location.origin;
-    if (/^https?:\/\//i.test(apiBase)) { try { apiOrigin = new URL(apiBase).origin; } catch { /**/ } }
+    // Use credentials only for same-origin URLs; S3/CDN cross-origin URLs must use 'omit'
+    // because S3 does not return Access-Control-Allow-Credentials: true
+    const isSameOrigin = targetUrl.origin === window.location.origin;
     const controller = new AbortController();
     const tid = setTimeout(() => controller.abort(), 8000);
-    const response = await fetch(targetUrl.toString(), { credentials: 'include', signal: controller.signal, headers: { Accept: 'image/*' } });
+    const response = await fetch(targetUrl.toString(), {
+      credentials: isSameOrigin ? 'include' : 'omit',
+      signal: controller.signal,
+      headers: { Accept: 'image/*' },
+    });
     clearTimeout(tid);
     if (!response.ok) return null;
     const blob = await response.blob();

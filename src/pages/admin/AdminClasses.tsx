@@ -49,7 +49,7 @@ export default function AdminClasses() {
   useEffect(() => { load(); }, []);
 
   const openNew = () => { setForm({ name: '', description: '', subject: '', monthlyFee: '', thumbnail: '', vision: '', mission: '', introVideoUrl: '', status: 'ANYONE' }); setEditingClass(null); setShowForm(true); setError(''); };
-  const openEdit = (cls: any) => { setForm({ name: cls.name, description: cls.description || '', subject: cls.subject || '', monthlyFee: cls.monthlyFee ?? '', thumbnail: cls.thumbnail || '', vision: cls.vision || '', mission: cls.mission || '', introVideoUrl: cls.introVideoUrl || '', status: cls.status || 'ANYONE' }); setEditingClass(cls); setShowForm(true); setError(''); };
+  const openEdit = (cls: any) => { setForm({ name: cls.name, description: cls.description || '', subject: cls.subject || '', monthlyFee: cls.monthlyFee != null ? String(cls.monthlyFee) : '', thumbnail: cls.thumbnail || '', vision: cls.vision || '', mission: cls.mission || '', introVideoUrl: cls.introVideoUrl || '', status: cls.status || 'ANYONE' }); setEditingClass(cls); setShowForm(true); setError(''); };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
