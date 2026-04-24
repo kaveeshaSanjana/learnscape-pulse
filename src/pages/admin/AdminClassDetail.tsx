@@ -439,7 +439,20 @@ function formatLectureDateTimeLabel(value: string | null | undefined): string {
 type Tab = 'months' | 'recordings' | 'liveLectures' | 'students' | 'attendance' | 'payments';
 
 const emptyMonthForm = { name: '', year: new Date().getFullYear().toString(), month: (new Date().getMonth() + 1).toString(), status: 'ANYONE' };
-const emptyRecForm = { monthId: '', title: '', description: '', videoUrl: '', thumbnail: '', topic: '', icon: '', materials: '', status: 'PAID_ONLY' };
+const emptyRecForm = { monthId: '', title: '', description: '', videoUrl: '', thumbnail: '', topic: '', icon: '', status: 'PAID_ONLY' };
+
+function parseMaterialItems(raw: string): Array<{ label: string; url: string }> {
+  if (!raw) return [];
+  try {
+    const m = JSON.parse(raw);
+    if (!Array.isArray(m)) return [];
+    return m.map((item: any, i: number) =>
+      typeof item === 'string'
+        ? { label: '', url: item }
+        : { label: item.label || '', url: item.url || '' }
+    );
+  } catch { return []; }
+}
 
 export default function AdminClassDetail() {
   const { id, instituteId } = useParams();
@@ -482,6 +495,7 @@ export default function AdminClassDetail() {
   const [showRecForm, setShowRecForm] = useState(false);
   const [editingRec, setEditingRec] = useState<any>(null);
   const [recForm, setRecForm] = useState({ ...emptyRecForm });
+  const [recMaterialItems, setRecMaterialItems] = useState<Array<{ label: string; url: string }>>([]);
   const [recSaving, setRecSaving] = useState(false);
   const [recError, setRecError] = useState('');
   const [uploadingRecThumbnail, setUploadingRecThumbnail] = useState(false);
@@ -2982,23 +2996,25 @@ export default function AdminClassDetail() {
   };
 
   // ─── Recording handlers ─────────────────
-  const openNewRec = () => { setRecForm({ ...emptyRecForm }); setEditingRec(null); setShowRecForm(true); setRecError(''); };
+  const openNewRec = () => { setRecForm({ ...emptyRecForm }); setRecMaterialItems([]); setEditingRec(null); setShowRecForm(true); setRecError(''); };
   const openEditRec = (rec: any) => {
     setRecForm({
       monthId: rec.monthId || '', title: rec.title, description: rec.description || '',
       videoUrl: rec.videoUrl, thumbnail: rec.thumbnail || '', topic: rec.topic || '',
-      icon: rec.icon || '', materials: rec.materials || '', status: rec.status || 'PAID_ONLY',
+      icon: rec.icon || '', status: rec.status || 'PAID_ONLY',
     });
+    setRecMaterialItems(parseMaterialItems(rec.materials || ''));
     setEditingRec(rec); setShowRecForm(true); setRecError('');
   };
   const saveRec = async (e: React.FormEvent) => {
     e.preventDefault(); setRecError(''); setRecSaving(true);
     try {
+      const validMaterials = recMaterialItems.filter(m => m.url.trim());
       const payload: any = {
         title: recForm.title, videoUrl: recForm.videoUrl, status: recForm.status,
         description: recForm.description || undefined, thumbnail: recForm.thumbnail || undefined,
         topic: recForm.topic || undefined, icon: recForm.icon || undefined,
-        materials: recForm.materials || undefined,
+        materials: validMaterials.length > 0 ? JSON.stringify(validMaterials) : undefined,
       };
       if (editingRec) {
         if (recForm.monthId !== editingRec.monthId) payload.monthId = recForm.monthId;
@@ -4651,7 +4667,44 @@ export default function AdminClassDetail() {
                       <div><label className={label}>Icon</label><input type="text" value={recForm.icon} onChange={e => setRecForm(p => ({ ...p, icon: e.target.value }))} className={inp} placeholder="Icon name/URL" /></div>
                     </div>
                     <div><label className={label}>Description</label><textarea value={recForm.description} onChange={e => setRecForm(p => ({ ...p, description: e.target.value }))} className={inp + " resize-none"} rows={3} placeholder="Optional notes..." /></div>
-                    <div><label className={label}>Materials (JSON or links)</label><textarea value={recForm.materials} onChange={e => setRecForm(p => ({ ...p, materials: e.target.value }))} className={inp + " resize-none"} rows={3} placeholder='e.g. ["https://file1.pdf"]' /></div>
+                    <div>
+                      <label className={label}>Material Links</label>
+                      <div className="space-y-2">
+                        {recMaterialItems.map((item, i) => (
+                          <div key={i} className="flex gap-2 items-start">
+                            <input
+                              type="text"
+                              value={item.label}
+                              onChange={e => setRecMaterialItems(prev => prev.map((m, j) => j === i ? { ...m, label: e.target.value } : m))}
+                              className="w-36 flex-shrink-0 px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                              placeholder="Label"
+                            />
+                            <input
+                              type="url"
+                              value={item.url}
+                              onChange={e => setRecMaterialItems(prev => prev.map((m, j) => j === i ? { ...m, url: e.target.value } : m))}
+                              className="flex-1 px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                              placeholder="https://..."
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setRecMaterialItems(prev => prev.filter((_, j) => j !== i))}
+                              className="p-2.5 rounded-xl text-slate-400 hover:text-red-500 hover:bg-red-50 transition flex-shrink-0"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
+                          </div>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() => setRecMaterialItems(prev => [...prev, { label: '', url: '' }])}
+                          className="flex items-center gap-1.5 text-xs text-blue-600 font-semibold hover:text-blue-700 py-1.5 px-2 rounded-lg hover:bg-blue-50 transition"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+                          Add link
+                        </button>
+                      </div>
+                    </div>
                   </div>
                   <div className="flex gap-3 pt-2 pb-2">
                     <button type="button" onClick={() => setShowRecForm(false)} className="flex-1 py-3.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 transition">Cancel</button>

@@ -6,6 +6,39 @@ import VideoPlayer, { fmtTime } from '../components/VideoPlayer';
 import { resolveWelcomeMessage } from '../components/WelcomeMessageEditor';
 import { useAuth } from '../context/AuthContext';
 
+type MaterialItem = { label: string; url: string };
+
+function parseMaterials(raw?: string | null): MaterialItem[] {
+  if (!raw) return [];
+  try {
+    const m = JSON.parse(raw);
+    if (!Array.isArray(m)) return [];
+    return m
+      .map((item: any, i: number) =>
+        typeof item === 'string'
+          ? { label: `Material ${i + 1}`, url: item }
+          : { label: item.label || `Material ${i + 1}`, url: item.url || '' }
+      )
+      .filter((m: MaterialItem) => m.url.trim());
+  } catch { return []; }
+}
+
+function getMaterialTypeBadge(url: string): { text: string; cls: string } {
+  const l = url.toLowerCase();
+  if (l.includes('.pdf'))                           return { text: 'PDF',  cls: 'bg-red-50 text-red-600 border-red-200' };
+  if (/\.(doc|docx)/.test(l))                       return { text: 'DOC',  cls: 'bg-blue-50 text-blue-600 border-blue-200' };
+  if (/\.(ppt|pptx)/.test(l))                       return { text: 'PPT',  cls: 'bg-orange-50 text-orange-600 border-orange-200' };
+  if (/\.(xls|xlsx|csv)/.test(l))                   return { text: 'XLS',  cls: 'bg-green-50 text-green-600 border-green-200' };
+  if (/\.(jpg|jpeg|png|gif|webp|svg)/.test(l))      return { text: 'IMG',  cls: 'bg-purple-50 text-purple-600 border-purple-200' };
+  if (/\.(mp4|mov|webm|avi|mkv)/.test(l))           return { text: 'VID',  cls: 'bg-indigo-50 text-indigo-600 border-indigo-200' };
+  if (/\.(mp3|wav|ogg|m4a)/.test(l))                return { text: 'AUD',  cls: 'bg-pink-50 text-pink-600 border-pink-200' };
+  if (/\.(zip|rar|7z|tar)/.test(l))                 return { text: 'ZIP',  cls: 'bg-slate-100 text-slate-600 border-slate-300' };
+  return { text: 'LINK', cls: 'bg-slate-50 text-slate-500 border-slate-200' };
+}
+
+const INACTIVITY_MS = 2 * 60 * 1000; // 2 minutes
+const COUNTDOWN_SECS = 30;
+
 export default function RecordingPlayerPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -21,13 +54,22 @@ export default function RecordingPlayerPage() {
   const [saveError, setSaveError] = useState('');
   const [failedSession, setFailedSession] = useState<SessionState | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarTab, setSidebarTab] = useState<'materials' | 'playlist'>('materials');
   const [showWelcome, setShowWelcome] = useState(false);
   const [typedText, setTypedText] = useState('');
   const [typingDone, setTypingDone] = useState(false);
+
+  // Inactivity detection
+  const [showInactivityDialog, setShowInactivityDialog] = useState(false);
+  const [inactivityCountdown, setInactivityCountdown] = useState(COUNTDOWN_SECS);
+  const lastActivityRef = useRef(Date.now());
+  const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const inactivityCheckRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const inactivityFiredRef = useRef(false);
+
   const classIdRef = useRef<string | null>(null);
   const typingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const speechRef = useRef<SpeechSynthesisUtterance | null>(null);
-
   const endSessionRef = useRef<(() => Promise<{ ok: boolean; error?: string; session: SessionState }>) | null>(null);
   const isGuest = !user;
 
@@ -44,7 +86,11 @@ export default function RecordingPlayerPage() {
         setRecording(rec);
         classIdRef.current = rec.month?.class?.id || null;
         setShowWelcome(true);
-        // Fetch other recordings from same month
+        // Auto-open sidebar when materials are present
+        try {
+          const mats = JSON.parse(rec.materials || '[]');
+          if (Array.isArray(mats) && mats.length > 0) setSidebarOpen(true);
+        } catch { /* no materials */ }
         if (rec.monthId) {
           try {
             const sibs = await api.get(`/recordings/by-month/${rec.monthId}`);
@@ -56,7 +102,63 @@ export default function RecordingPlayerPage() {
       .finally(() => setLoading(false));
   }, [id]);
 
-  // ─── Back handler: end session, check result ────────────
+  // ─── Inactivity detection ───────────────────────────────
+
+  const handleUserActivity = useCallback(() => {
+    lastActivityRef.current = Date.now();
+    if (inactivityFiredRef.current) {
+      inactivityFiredRef.current = false;
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+        countdownIntervalRef.current = null;
+      }
+      setShowInactivityDialog(false);
+      setInactivityCountdown(COUNTDOWN_SECS);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (showWelcome || !recording) return;
+
+    lastActivityRef.current = Date.now();
+
+    inactivityCheckRef.current = setInterval(() => {
+      if (inactivityFiredRef.current) return;
+      if (Date.now() - lastActivityRef.current < INACTIVITY_MS) return;
+
+      inactivityFiredRef.current = true;
+      setShowInactivityDialog(true);
+      let remaining = COUNTDOWN_SECS;
+      setInactivityCountdown(remaining);
+
+      countdownIntervalRef.current = setInterval(() => {
+        remaining -= 1;
+        setInactivityCountdown(remaining);
+        if (remaining <= 0) {
+          clearInterval(countdownIntervalRef.current!);
+          countdownIntervalRef.current = null;
+          inactivityFiredRef.current = false;
+          setShowInactivityDialog(false);
+          if (endSessionRef.current) {
+            endSessionRef.current().finally(() => navigate(-1));
+          } else {
+            navigate(-1);
+          }
+        }
+      }, 1000);
+    }, 10_000);
+
+    const events = ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart', 'click'] as const;
+    events.forEach(e => window.addEventListener(e, handleUserActivity, { passive: true }));
+
+    return () => {
+      if (inactivityCheckRef.current) clearInterval(inactivityCheckRef.current);
+      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+      events.forEach(e => window.removeEventListener(e, handleUserActivity));
+    };
+  }, [showWelcome, recording, handleUserActivity, navigate]);
+
+  // ─── Back handler ────────────────────────────────────────
 
   const handleBack = useCallback(async () => {
     if (endSessionRef.current) {
@@ -75,7 +177,6 @@ export default function RecordingPlayerPage() {
     }
   }, [navigate]);
 
-  // Skip welcome overlay
   const handleSkip = useCallback(() => {
     if (typingRef.current) { clearInterval(typingRef.current); typingRef.current = null; }
     if (speechRef.current) { window.speechSynthesis.cancel(); speechRef.current = null; }
@@ -122,20 +223,13 @@ export default function RecordingPlayerPage() {
     setTypedText('');
     setTypingDone(false);
 
-    // Start natural TTS alongside typing
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
-
-      // Strip emojis for clean speech
       const cleanText = lines.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, '').trim();
-
-      // Split into sentences for natural pacing with pauses between
       const sentences = cleanText
         .split(/(?<=[.!?])\s+|\n\n+/)
         .map(s => s.trim())
         .filter(Boolean);
-
-      // Rank voice quality — prefer known high-quality voices
       const PREFERRED_VOICES = [
         'google uk english female', 'google us english', 'microsoft zira',
         'microsoft jenny', 'samantha', 'karen', 'moira', 'tessa',
@@ -144,41 +238,34 @@ export default function RecordingPlayerPage() {
       const pickVoice = (): SpeechSynthesisVoice | null => {
         const voices = window.speechSynthesis.getVoices();
         if (voices.length === 0) return null;
-        // First try known high-quality voices
         for (const name of PREFERRED_VOICES) {
           const v = voices.find(v => v.name.toLowerCase().includes(name));
           if (v) return v;
         }
-        // Then prefer remote/cloud English voices (usually higher quality)
         const remote = voices.find(v => v.lang.startsWith('en') && !v.localService);
         if (remote) return remote;
         return voices.find(v => v.lang.startsWith('en')) || null;
       };
-
       const speakSentences = (voice: SpeechSynthesisVoice | null) => {
         sentences.forEach((sentence, idx) => {
           const utt = new SpeechSynthesisUtterance(sentence);
-          utt.rate = 0.92;   // slightly slower = more natural
-          utt.pitch = 1.05;  // slightly warm
+          utt.rate = 0.92;
+          utt.pitch = 1.05;
           utt.volume = 1;
           if (voice) utt.voice = voice;
-          // Add a brief pause between sentences for natural rhythm
           if (idx > 0) {
             const pause = new SpeechSynthesisUtterance('');
             pause.volume = 0;
-            // Short empty utterance acts as a natural pause
             window.speechSynthesis.speak(pause);
           }
           speechRef.current = utt;
           window.speechSynthesis.speak(utt);
         });
       };
-
       const voice = pickVoice();
       if (voice) {
         speakSentences(voice);
       } else {
-        // Voices not loaded yet — wait for them
         window.speechSynthesis.onvoiceschanged = () => {
           speakSentences(pickVoice());
           window.speechSynthesis.onvoiceschanged = null;
@@ -203,14 +290,7 @@ export default function RecordingPlayerPage() {
     };
   }, [showWelcome, recording, user]);
 
-  // Parse materials
-  const materials = (() => {
-    if (!recording?.materials) return [];
-    try {
-      const m = JSON.parse(recording.materials);
-      return Array.isArray(m) ? m : [];
-    } catch { return []; }
-  })();
+  const materials = parseMaterials(recording?.materials);
 
   // ─── Error state ────────────────────────────────────────
 
@@ -231,8 +311,6 @@ export default function RecordingPlayerPage() {
       </div>
     );
   }
-
-  // ─── Loading ────────────────────────────────────────────
 
   if (loading) {
     return (
@@ -264,12 +342,26 @@ export default function RecordingPlayerPage() {
           <h1 className="text-sm font-semibold text-slate-800 truncate">{recording?.title}</h1>
           {recording?.topic && <span className="hidden sm:inline text-xs text-blue-500 font-medium bg-blue-50 px-2 py-0.5 rounded-full">{recording.topic}</span>}
         </div>
-        <div className="flex items-center gap-2">
-          {/* Toggle sidebar */}
+        <div className="flex items-center gap-1.5">
+          {/* Materials button — always visible, with badge */}
           <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="hidden lg:inline-flex p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
-            title={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
+            onClick={() => { setSidebarOpen(o => !o); setSidebarTab('materials'); }}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${sidebarOpen && sidebarTab === 'materials' ? 'bg-blue-50 text-blue-700' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'}`}
+            title="Materials"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941l-7.81 7.81a1.5 1.5 0 002.112 2.13" />
+            </svg>
+            <span className="hidden sm:inline">Materials</span>
+            {materials.length > 0 && (
+              <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-blue-600 text-white text-[10px] font-bold">{materials.length}</span>
+            )}
+          </button>
+          {/* Playlist button */}
+          <button
+            onClick={() => { setSidebarOpen(o => !o); setSidebarTab('playlist'); }}
+            className={`p-1.5 rounded-lg transition ${sidebarOpen && sidebarTab === 'playlist' ? 'bg-blue-50 text-blue-700' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'}`}
+            title="Playlist"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12" />
@@ -288,9 +380,7 @@ export default function RecordingPlayerPage() {
             <div className="flex-1 min-w-0">
               <p className="text-red-800 text-sm font-medium">Failed to save your watch session</p>
               <p className="text-red-600 text-xs mt-0.5">{saveError}</p>
-              <p className="text-red-500 text-xs mt-2">
-                Take a screenshot of this for proof. Your session details:
-              </p>
+              <p className="text-red-500 text-xs mt-2">Take a screenshot of this for proof. Your session details:</p>
               {failedSession && (
                 <div className="mt-2 bg-red-100 rounded-lg p-3 text-xs font-mono text-red-700 overflow-auto max-h-40 border border-red-200">
                   <p>Recording: {recording?.title} (ID: {recording?.id})</p>
@@ -306,8 +396,7 @@ export default function RecordingPlayerPage() {
               <div className="flex gap-2 mt-3">
                 <button
                   onClick={async () => {
-                    setSaving(true);
-                    setSaveError('');
+                    setSaving(true); setSaveError('');
                     if (endSessionRef.current) {
                       const r = await endSessionRef.current();
                       if (r.ok) { navigate(-1); return; }
@@ -321,10 +410,7 @@ export default function RecordingPlayerPage() {
                 >
                   {saving ? 'Retrying...' : 'Retry Save'}
                 </button>
-                <button
-                  onClick={() => navigate(-1)}
-                  className="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 text-xs font-medium hover:bg-slate-200 transition"
-                >
+                <button onClick={() => navigate(-1)} className="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 text-xs font-medium hover:bg-slate-200 transition">
                   Leave Without Saving
                 </button>
               </div>
@@ -334,7 +420,7 @@ export default function RecordingPlayerPage() {
       )}
 
       {/* Main content: video + sidebar */}
-      <div className="flex-1 flex min-h-0 overflow-hidden">
+      <div className="flex-1 flex min-h-0 overflow-hidden relative">
         {/* Video area */}
         <div className="flex-1 min-w-0 flex flex-col">
           <VideoPlayer
@@ -350,95 +436,179 @@ export default function RecordingPlayerPage() {
           />
         </div>
 
-        {/* Sidebar */}
+        {/* Sidebar — desktop: inline panel; mobile: fixed overlay */}
         {sidebarOpen && (
-          <div className="hidden lg:flex w-80 lg:w-96 bg-white border-l border-slate-200 flex-col flex-shrink-0 overflow-hidden">
-            {/* Description + Materials */}
-            <div className="p-4 border-b border-slate-100 overflow-y-auto flex-shrink-0 max-h-48">
-              {recording.description && (
-                <p className="text-slate-500 text-xs leading-relaxed mb-3">{recording.description}</p>
-              )}
-              {materials.length > 0 && (
-                <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Materials</p>
-                  <div className="flex flex-col gap-1.5">
-                    {materials.map((url: string, i: number) => (
-                      <a key={i} href={url} target="_blank" rel="noreferrer"
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-50 hover:bg-blue-100 transition text-xs text-blue-600 font-medium border border-blue-100">
-                        <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          <>
+            {/* Mobile overlay backdrop */}
+            <div
+              className="lg:hidden fixed inset-0 bg-black/40 z-20"
+              onClick={() => setSidebarOpen(false)}
+            />
+            <div className="
+              fixed right-0 top-0 bottom-0 z-30 w-80
+              lg:relative lg:inset-auto lg:z-auto lg:w-96
+              bg-white border-l border-slate-200 flex flex-col flex-shrink-0 overflow-hidden
+            ">
+              {/* Sidebar header with tabs */}
+              <div className="flex items-center gap-1 px-3 pt-3 pb-0 border-b border-slate-100 bg-white sticky top-0 z-10">
+                <button
+                  onClick={() => setSidebarTab('materials')}
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-t-lg text-xs font-semibold transition border-b-2 ${sidebarTab === 'materials' ? 'border-blue-600 text-blue-700' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941l-7.81 7.81a1.5 1.5 0 002.112 2.13" /></svg>
+                  Materials
+                  {materials.length > 0 && <span className="ml-0.5 text-[10px] font-bold text-blue-500">({materials.length})</span>}
+                </button>
+                <button
+                  onClick={() => setSidebarTab('playlist')}
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-t-lg text-xs font-semibold transition border-b-2 ${sidebarTab === 'playlist' ? 'border-blue-600 text-blue-700' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12" /></svg>
+                  Playlist
+                  {siblings.length > 0 && <span className="ml-0.5 text-[10px] font-bold text-slate-400">({siblings.length})</span>}
+                </button>
+                <button
+                  onClick={() => setSidebarOpen(false)}
+                  className="ml-auto p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition lg:hidden"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              </div>
+
+              {/* Materials tab */}
+              {sidebarTab === 'materials' && (
+                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                  {recording.description && (
+                    <div className="bg-slate-50 rounded-xl p-3">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Description</p>
+                      <p className="text-slate-600 text-xs leading-relaxed">{recording.description}</p>
+                    </div>
+                  )}
+                  {materials.length > 0 ? (
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
+                        Materials ({materials.length})
+                      </p>
+                      <div className="flex flex-col gap-2">
+                        {materials.map((mat, i) => {
+                          const badge = getMaterialTypeBadge(mat.url);
+                          return (
+                            <a
+                              key={i}
+                              href={mat.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-blue-50 hover:border-blue-300 transition group shadow-sm"
+                            >
+                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border flex-shrink-0 ${badge.cls}`}>
+                                {badge.text}
+                              </span>
+                              <span className="flex-1 min-w-0 text-xs font-medium text-slate-700 group-hover:text-blue-700 truncate transition">
+                                {mat.label}
+                              </span>
+                              <svg className="w-3.5 h-3.5 text-slate-300 group-hover:text-blue-500 flex-shrink-0 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                              </svg>
+                            </a>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-2">
+                        <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32" />
                         </svg>
-                        Material {i + 1}
-                      </a>
-                    ))}
-                  </div>
+                      </div>
+                      <p className="text-slate-400 text-xs">No materials attached to this recording</p>
+                    </div>
+                  )}
                 </div>
               )}
-              {!recording.description && materials.length === 0 && (
-                <p className="text-slate-400 text-xs italic">No description or materials</p>
+
+              {/* Playlist tab */}
+              {sidebarTab === 'playlist' && (
+                <div className="flex-1 overflow-y-auto">
+                  {siblings.length === 0 ? (
+                    <div className="p-6 text-center text-slate-400 text-xs">No other recordings in this month</div>
+                  ) : (
+                    <div className="p-2 space-y-1">
+                      {siblings.map((rec: any) => (
+                        <Link
+                          key={rec.id}
+                          to={`/recording/${rec.id}`}
+                          className="flex gap-3 p-2 rounded-xl hover:bg-slate-50 transition group border border-transparent hover:border-slate-200"
+                        >
+                          <div className="w-24 h-14 rounded-lg bg-slate-100 overflow-hidden flex-shrink-0 relative">
+                            {rec.thumbnail ? (
+                              <img src={rec.thumbnail} alt={rec.title} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200">
+                                <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.069A1 1 0 0121 8.82v6.361a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                </svg>
+                              </div>
+                            )}
+                            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition bg-black/30">
+                              <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M8 5v14l11-7z" />
+                              </svg>
+                            </div>
+                            {rec.duration && (
+                              <span className="absolute bottom-0.5 right-0.5 px-1 py-0.5 rounded bg-black/70 text-white text-[9px] font-medium">
+                                {typeof rec.duration === 'number' ? fmtTime(rec.duration) : rec.duration}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium text-slate-700 group-hover:text-blue-600 transition truncate">{rec.title}</p>
+                            {rec.topic && <p className="text-[10px] text-blue-500 truncate mt-0.5">{rec.topic}</p>}
+                            {rec.createdAt && (
+                              <p className="text-[10px] text-slate-400 mt-0.5">
+                                {new Date(rec.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                              </p>
+                            )}
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
               )}
             </div>
+          </>
+        )}
 
-            {/* Other recordings from same month */}
-            <div className="flex-1 overflow-y-auto">
-              <div className="p-3 border-b border-slate-100 sticky top-0 bg-white z-10">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                  Other Recordings ({siblings.length})
-                </p>
+        {/* Inactivity dialog */}
+        {showInactivityDialog && (
+          <div className="absolute inset-0 z-40 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center">
+              <div className="w-12 h-12 rounded-full bg-amber-50 flex items-center justify-center mx-auto mb-4">
+                <svg className="w-6 h-6 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                </svg>
               </div>
-              {siblings.length === 0 ? (
-                <div className="p-6 text-center text-slate-400 text-xs">No other recordings</div>
-              ) : (
-                <div className="p-2 space-y-1">
-                  {siblings.map((rec: any) => (
-                    <Link
-                      key={rec.id}
-                      to={`/recording/${rec.id}`}
-                      className="flex gap-3 p-2 rounded-xl hover:bg-slate-50 transition group border border-transparent hover:border-slate-200"
-                    >
-                      <div className="w-24 h-14 rounded-lg bg-slate-100 overflow-hidden flex-shrink-0 relative">
-                        {rec.thumbnail ? (
-                          <img src={rec.thumbnail} alt={rec.title} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200">
-                            <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.069A1 1 0 0121 8.82v6.361a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                            </svg>
-                          </div>
-                        )}
-                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition bg-black/30">
-                          <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M8 5v14l11-7z" />
-                          </svg>
-                        </div>
-                        {rec.duration && (
-                          <span className="absolute bottom-0.5 right-0.5 px-1 py-0.5 rounded bg-black/70 text-white text-[9px] font-medium">
-                            {typeof rec.duration === 'number' ? fmtTime(rec.duration) : rec.duration}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-slate-700 group-hover:text-blue-600 transition truncate">{rec.title}</p>
-                        {rec.topic && <p className="text-[10px] text-blue-500 truncate mt-0.5">{rec.topic}</p>}
-                        {rec.createdAt && (
-                          <p className="text-[10px] text-slate-400 mt-0.5">
-                            {new Date(rec.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
-                          </p>
-                        )}
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              )}
+              <h2 className="text-lg font-bold text-slate-800 mb-1">Are you still here?</h2>
+              <p className="text-sm text-slate-500 mb-1">No activity detected for 2 minutes.</p>
+              <p className="text-sm font-medium text-amber-600 mb-5">
+                Session ends in{' '}
+                <span className="font-bold tabular-nums">{inactivityCountdown}s</span>
+              </p>
+              <button
+                onClick={handleUserActivity}
+                className="w-full py-3 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-500/25"
+              >
+                Yes, continue watching
+              </button>
             </div>
           </div>
         )}
       </div>
 
-      {/* Welcome message overlay — skippable like game intros */}
+      {/* Welcome message overlay */}
       {showWelcome && (
         <div className="absolute inset-0 z-10 bg-gradient-to-br from-slate-50 via-white to-blue-50/50 flex flex-col items-center justify-center p-4">
-          {/* Skip button — always visible, top-right */}
           <button
             onClick={handleSkip}
             className="absolute top-5 right-5 flex items-center gap-1.5 px-4 py-2 rounded-full bg-white border border-slate-200 text-slate-500 text-sm font-medium hover:bg-slate-50 hover:text-slate-700 hover:border-slate-300 transition shadow-sm"
@@ -448,24 +618,18 @@ export default function RecordingPlayerPage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
             </svg>
           </button>
-
           <div className="w-full max-w-lg flex flex-col items-center">
-            {/* Avatar */}
             <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/15 mb-5">
               <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
               </svg>
             </div>
-
-            {/* Message card */}
             <div className="w-full bg-white rounded-2xl border border-slate-200 p-6 shadow-lg min-h-[140px]">
               <pre className="text-slate-700 text-base font-sans leading-relaxed whitespace-pre-wrap" style={{ fontFamily: 'inherit' }}>
                 {typedText}
                 {!typingDone && <span className="inline-block w-0.5 h-5 bg-blue-500 ml-0.5 animate-pulse align-middle" />}
               </pre>
             </div>
-
-            {/* Start button — appears after typing */}
             <button
               onClick={handleSkip}
               className={`mt-5 w-full py-3 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2 ${typingDone ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3 pointer-events-none'} transition-all duration-400`}
@@ -473,8 +637,6 @@ export default function RecordingPlayerPage() {
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
               Start Watching
             </button>
-
-            {/* Click anywhere hint */}
             <p className={`mt-3 text-xs text-slate-400 ${typingDone ? 'opacity-0' : 'opacity-100'} transition-opacity`}>
               Press <span className="font-semibold text-slate-500">Skip</span> to start watching
             </p>
