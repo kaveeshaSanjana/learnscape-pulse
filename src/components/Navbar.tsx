@@ -4,39 +4,11 @@ import { motion, useScroll, useSpring } from "framer-motion";
 import { Menu, X } from "lucide-react";
 import { useState, useEffect } from "react";
 
-const DEFAULT_MAIN_APP_URL = "http://localhost:5173";
-
-const resolveMainAppUrl = () => {
-  const searchParams = new URLSearchParams(window.location.search);
-  const fromQuery = searchParams.get("mainAppUrl")?.trim();
-  if (fromQuery && /^https?:\/\//i.test(fromQuery)) {
-    return fromQuery.replace(/\/$/, "");
-  }
-
-  try {
-    const fromReferrer = new URL(document.referrer).origin;
-    if (fromReferrer && /^https?:\/\//i.test(fromReferrer)) {
-      return fromReferrer.replace(/\/$/, "");
-    }
-  } catch {
-    // Ignore invalid or empty referrer.
-  }
-
-  const fromEnv = import.meta.env.VITE_MAIN_APP_URL?.trim();
-  if (fromEnv && /^https?:\/\//i.test(fromEnv)) {
-    return fromEnv.replace(/\/$/, "");
-  }
-
-  return DEFAULT_MAIN_APP_URL;
-};
-
 const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const { scrollYProgress } = useScroll();
   const scaleX = useSpring(scrollYProgress, { stiffness: 200, damping: 30, restDelta: 0.001 });
-  const mainAppUrl = resolveMainAppUrl();
-  const getMainAppLink = (path: string) => `${mainAppUrl}${path}`;
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -71,7 +43,7 @@ const Navbar = () => {
             <div className="relative">
               <img
                 src={logoImg}
-                alt="Easy English Logo"
+                alt="Thilina Dhananjaya Logo"
                 className={`object-contain transition-all duration-300 ${
                   scrolled ? "w-10 h-10" : "w-12 h-12"
                 }`}
@@ -82,7 +54,7 @@ const Navbar = () => {
                 className="text-sm font-bold text-foreground leading-tight"
                 style={{ fontFamily: "var(--font-body)" }}
               >
-                Easy English
+                Thilina Dhananjaya
               </h2>
               <p className="text-xs text-muted-foreground">
                 with Thilina Dhananjaya
@@ -108,10 +80,13 @@ const Navbar = () => {
             </div>
           </div>
 
-          {/* Desktop button */}
+          {/* Desktop buttons */}
           <div className="hidden md:flex items-center gap-3">
-            <Button asChild size="sm" className="rounded-full px-6">
-              <a href={getMainAppLink("/login")} target="_top" rel="noreferrer">Student Login</a>
+            <Button variant="ghost" size="sm" className="rounded-full">
+              Login
+            </Button>
+            <Button size="sm" className="rounded-full px-6">
+              Register
             </Button>
           </div>
 
@@ -150,10 +125,9 @@ const Navbar = () => {
                 {item}
               </a>
             ))}
-            <div className="mt-3 pt-3 border-t border-border">
-              <Button asChild size="sm" className="w-full rounded-full">
-                <a href={getMainAppLink("/login")} target="_top" rel="noreferrer">Student Login</a>
-              </Button>
+            <div className="flex gap-2 mt-3 pt-3 border-t border-border">
+              <Button variant="ghost" size="sm" className="flex-1 rounded-full">Login</Button>
+              <Button size="sm" className="flex-1 rounded-full">Register</Button>
             </div>
           </div>
         </motion.div>

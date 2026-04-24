@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import teacherImg from "@/assets/teacher.png";
 import { BookOpen } from "lucide-react";
 import { motion } from "framer-motion";
@@ -26,7 +27,7 @@ const HandDrawnUnderline = () => (
 const HeroSection = () => {
   return (
     <section
-      className="relative min-h-screen flex items-start md:items-center overflow-hidden pt-4 md:pt-0 pb-0"
+      className="relative min-h-screen flex items-center overflow-hidden pt-16"
       style={{ background: "var(--hero-gradient)" }}
     >
       <motion.div
@@ -45,13 +46,13 @@ const HeroSection = () => {
         className="absolute top-1/2 left-1/4 w-4 h-4 rounded-full bg-primary/20"
       />
 
-      <div className="container mx-auto px-4 flex flex-col items-center lg:grid lg:grid-cols-2 gap-0 lg:gap-8 relative z-10 pb-0 mb-0 lg:min-h-screen">
-        <div className="order-2 lg:order-1 text-center lg:text-left mt-4 md:mt-6 lg:mt-0 lg:self-center">
+      <div className="container mx-auto px-4 grid lg:grid-cols-2 gap-8 items-center relative z-10">
+        <div className="order-2 lg:order-1 text-center lg:text-left">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3, duration: 0.5 }}
-            className="hidden lg:inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-3 md:mb-6"
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6"
           >
             <BookOpen className="w-4 h-4" />
             A/L & O/L English Excellence
@@ -61,18 +62,18 @@ const HeroSection = () => {
             initial={{ opacity: 0, x: -40 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.5, duration: 0.6, ease: "easeOut" }}
-            className="text-3xl md:text-5xl lg:text-6xl font-extrabold text-foreground leading-tight mb-2 md:mb-4"
+            className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-foreground leading-tight mb-4"
           >
-            Easy English
+            Thilina Dhananjaya
           </motion.h1>
 
           <motion.div
             initial={{ opacity: 0, x: -30 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.7, duration: 0.5 }}
-            className="mb-2 md:mb-4"
+            className="mb-4"
           >
-            <p className="text-lg md:text-2xl font-semibold text-foreground" style={{ fontFamily: 'var(--font-body)' }}>
+            <p className="text-xl md:text-2xl font-semibold text-foreground" style={{ fontFamily: 'var(--font-body)' }}>
               with{" "}
               <span className="relative inline-block pb-1">
                 <span className="relative z-10 text-foreground font-bold">Thilina Dhananjaya</span>
@@ -85,7 +86,7 @@ const HeroSection = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.9, duration: 0.6 }}
-            className="text-muted-foreground text-sm md:text-lg max-w-lg mx-auto lg:mx-0 leading-relaxed"
+            className="text-muted-foreground text-base md:text-lg max-w-lg mx-auto lg:mx-0 leading-relaxed"
             style={{ fontFamily: 'var(--font-body)' }}
           >
             Master English with confidence. Proven methods, outstanding results, and a learning experience designed to take you beyond the exam.
@@ -96,47 +97,16 @@ const HeroSection = () => {
           initial={{ opacity: 0, scale: 0.85, x: 60 }}
           animate={{ opacity: 1, scale: 1, x: 0 }}
           transition={{ type: "spring", stiffness: 80, damping: 18, delay: 0.4 }}
-          className="order-1 lg:order-2 flex flex-col items-center lg:items-end relative mt-14 md:mt-10 lg:mt-0 lg:self-end lg:translate-y-16"
+          className="order-1 lg:order-2 flex justify-center relative"
         >
-          <div className="relative lg:mt-0 mb-0 pb-0">
-            {/* Decorative dots - mobile/tablet */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.8, duration: 0.6 }}
-              className="lg:hidden absolute -top-4 -left-4 w-8 h-8 rounded-full bg-muted-foreground/15 z-0"
+          <div className="relative">
+            <div className="absolute inset-0 bg-gradient-to-t from-primary/10 to-transparent rounded-b-full" />
+            <img
+              src={teacherImg}
+              alt="Thilina Dhananjaya - English Teacher"
+              className="relative z-10 w-[320px] md:w-[420px] lg:w-[480px] drop-shadow-2xl"
             />
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 1, duration: 0.6 }}
-              className="lg:hidden absolute top-1/3 -right-3 w-5 h-5 rounded-full bg-muted-foreground/10 z-0"
-            />
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 1.1, duration: 0.6 }}
-              className="lg:hidden absolute bottom-24 -left-6 w-6 h-6 rounded-full bg-muted-foreground/12 z-0"
-            />
-
-            <div className="relative z-10 w-[300px] md:w-[420px] lg:w-[580px] xl:w-[640px] aspect-[4/5] mx-auto">
-              <img
-                src={teacherImg}
-                alt="Thilina Dhananjaya - English Teacher"
-                className="absolute inset-0 w-full h-full object-contain object-bottom drop-shadow-2xl block mx-auto"
-              />
-            </div>
           </div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.5 }}
-            className="lg:hidden relative z-20 mt-0 md:-mt-2 flex w-fit items-center gap-2 rounded-full bg-primary/10 px-5 py-2 text-sm font-semibold text-primary shadow-md mx-auto"
-          >
-            <BookOpen className="w-4 h-4" />
-            A/L & O/L English Excellence
-          </motion.div>
         </motion.div>
       </div>
     </section>

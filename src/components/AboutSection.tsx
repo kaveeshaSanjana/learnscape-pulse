@@ -1,64 +1,14 @@
 import { motion, type Variants } from "framer-motion";
-import { BookOpen, GraduationCap, Video, FileText, Mic, Clock, User } from "lucide-react";
+import { BookOpen, Users, GraduationCap, Video, FileText, Mic } from "lucide-react";
 import { useState } from "react";
 
 const features = [
-  { 
-    icon: Video, 
-    titleEn: "Live Online Classes", 
-    titleSi: "සජීවී අන්තර්ජාල පන්තිය",
-    descEn: "Interactive sessions with real-time Q&A and discussion.", 
-    descSi: "සිසුන්ට ප්‍රශ්ན විමසීමට සහ සාකච්ඡා කිරීමට අවස්ථා සමඟ අන්තයාබේධී ගිණුම් සතුන්"
-  },
-  { 
-    icon: FileText, 
-    titleEn: "Structured Notes", 
-    titleSi: "ව්‍යුහගත සටහන්",
-    descEn: "Comprehensive study materials crafted for A/L & O/L syllabi.", 
-    descSi: "A/L සහ O/L විෂයවලට සකස් කරන ලද සම්පූර්ණ අධ්‍යයන ද්‍රව්‍ය"
-  },
-  { 
-    icon: Mic, 
-    titleEn: "Speaking Practice", 
-    titleSi: "කතා කිරීමේ පුහුණුව",
-    descEn: "Build fluency through guided conversation exercises.", 
-    descSi: "මඟපෙන්වන සංවාද අභ්‍යාස හරහා කතා කිරීමේ දක්ෂතාවය සහ ස්වයංවිශ්වාසය වර්ධනය කරගන්න"
-  },
-  { 
-    icon: GraduationCap, 
-    titleEn: "Exam Strategy", 
-    titleSi: "පරීක්‍ෂණ උපක්‍රමය",
-    descEn: "Proven techniques to maximize marks in every paper.", 
-    descSi: "සෑම පත්‍රයකම ලකුණු උපරිම කිරීම"
-  },
-  { 
-    icon: BookOpen, 
-    titleEn: "Grammar Mastery", 
-    titleSi: "ව්‍යාකරණ දක්ෂතා",
-    descEn: "Clear, simplified approach to English grammar rules.", 
-    descSi: "ඉංග්‍රීසි ව්‍යාකරණ නියම පිළිබඳ පැහැදිලි සරල ක්‍රමවේදය"
-  },
-  { 
-    icon: Clock, 
-    titleEn: "Class Recordings", 
-    titleSi: "පන්ති පටිගත කිරීම්",
-    descEn: "Students who miss classes get access to recorded sessions.", 
-    descSi: "පන්තියට නොපැමිණෙන සිසුන්ට පටිගත කරන ලද සැසි සමඟ ප්‍රවේශය ලබා දේ"
-  },
-  { 
-    icon: FileText, 
-    titleEn: "Daily Homework Checking", 
-    titleSi: "දෛනික ගෙදරට කරන කාර්ය පරීක්‍ෂණය",
-    descEn: "Regular assignment review and feedback for each student.", 
-    descSi: "සෑම සිසුනට නිතිපතා නිවේදන සමාලෝචනය සහ ප්‍රතිපෝෂණ"
-  },
-  { 
-    icon: User, 
-    titleEn: "Personalized Attention", 
-    titleSi: "පුද්ගලිකව අවධානය",
-    descEn: "Individual focus and customized guidance for every student.", 
-    descSi: "සෑම සිසුනට පුද්ගලිකවම අවධානය සහ අනුකූලිත පguidance"
-  },
+  { icon: Video, title: "Live Online Classes", desc: "Interactive sessions with real-time Q&A and discussion." },
+  { icon: FileText, title: "Structured Notes", desc: "Comprehensive study materials crafted for A/L & O/L syllabi." },
+  { icon: Users, title: "Small Batch Sizes", desc: "Personalized attention with limited students per class." },
+  { icon: Mic, title: "Speaking Practice", desc: "Build fluency through guided conversation exercises." },
+  { icon: GraduationCap, title: "Exam Strategy", desc: "Proven techniques to maximize marks in every paper." },
+  { icon: BookOpen, title: "Grammar Mastery", desc: "Clear, simplified approach to English grammar rules." },
 ];
 
 const containerVariants = {
@@ -133,22 +83,13 @@ const FeatureCard = ({ feature, index }: { feature: typeof features[0]; index: n
         {/* Content */}
         <div className="relative z-10">
           <h3
-            className="text-lg font-bold text-foreground mb-1 group-hover:text-primary transition-colors duration-300"
+            className="text-lg font-bold text-foreground mb-2 group-hover:text-primary transition-colors duration-300"
             style={{ fontFamily: "var(--font-heading)" }}
           >
-            {feature.titleEn}
+            {feature.title}
           </h3>
-          <h3
-            className="text-sm font-semibold text-primary/80 mb-3"
-            style={{ fontFamily: "var(--font-body)" }}
-          >
-            {feature.titleSi}
-          </h3>
-          <p className="text-sm text-muted-foreground leading-relaxed mb-2">
-            {feature.descEn}
-          </p>
-          <p className="text-xs text-muted-foreground/80 leading-relaxed">
-            {feature.descSi}
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            {feature.desc}
           </p>
         </div>
 
@@ -239,7 +180,7 @@ const AboutSection = () => (
             {/* Left column */}
             <div className="space-y-6 pt-8">
               {features.slice(0, 2).map((f, i) => (
-                <FeatureCard key={f.titleEn} feature={f} index={i} />
+                <FeatureCard key={f.title} feature={f} index={i} />
               ))}
             </div>
 
@@ -301,14 +242,14 @@ const AboutSection = () => (
 
               {/* Cards under center */}
               {features.slice(2, 4).map((f, i) => (
-                <FeatureCard key={f.titleEn} feature={f} index={i + 2} />
+                <FeatureCard key={f.title} feature={f} index={i + 2} />
               ))}
             </div>
 
             {/* Right column */}
             <div className="space-y-6 pt-8">
               {features.slice(4, 6).map((f, i) => (
-                <FeatureCard key={f.titleEn} feature={f} index={i + 4} />
+                <FeatureCard key={f.title} feature={f} index={i + 4} />
               ))}
             </div>
           </div>
@@ -325,7 +266,7 @@ const AboutSection = () => (
           className="grid grid-cols-2 gap-5 max-w-3xl mx-auto"
         >
           {features.map((f, i) => (
-            <FeatureCard key={f.titleEn} feature={f} index={i} />
+            <FeatureCard key={f.title} feature={f} index={i} />
           ))}
         </motion.div>
       </div>
@@ -350,7 +291,7 @@ const AboutSection = () => (
           </motion.div>
 
           {features.map((f, i) => (
-            <FeatureCard key={f.titleEn} feature={f} index={i} />
+            <FeatureCard key={f.title} feature={f} index={i} />
           ))}
         </motion.div>
       </div>
