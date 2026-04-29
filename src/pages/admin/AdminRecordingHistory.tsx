@@ -8,7 +8,7 @@ import StickyDataTable, { type StickyColumn } from '../../components/StickyDataT
 import WelcomeMessageEditor from '../../components/WelcomeMessageEditor';
 import StudentWatchDetailModal from '../../components/StudentWatchDetailModal';
 
-const VISIBILITY_OPTIONS = ['ANYONE', 'STUDENTS_ONLY', 'PAID_ONLY', 'PRIVATE', 'INACTIVE'];
+const VISIBILITY_OPTIONS = ['ANYONE', 'STUDENTS_ONLY', 'ENROLLED_ONLY', 'PAID_ONLY', 'PRIVATE', 'INACTIVE'];
 const VIDEO_TYPES = ['DRIVE', 'YOUTUBE', 'ZOOM', 'OTHER'];
 const statusBadge = (s: string) => {
   const map: Record<string, string> = {

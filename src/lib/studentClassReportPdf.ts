@@ -239,8 +239,6 @@ async function loadImage(rawUrl?: string | null): Promise<{ dataUrl: string; for
     if (/^data:image\//i.test(resolved))
       return { dataUrl: resolved, format: resolved.toLowerCase().startsWith('data:image/png') ? 'PNG' : 'JPEG' };
     const targetUrl = new URL(resolved, window.location.origin);
-    // Use credentials only for same-origin URLs; S3/CDN cross-origin URLs must use 'omit'
-    // because S3 does not return Access-Control-Allow-Credentials: true
     const isSameOrigin = targetUrl.origin === window.location.origin;
     const controller = new AbortController();
     const tid = setTimeout(() => controller.abort(), 8000);

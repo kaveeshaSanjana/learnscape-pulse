@@ -10,7 +10,7 @@ import WelcomeMessageEditor from '../components/WelcomeMessageEditor';
 
 /* ─── Types ──────────────────────────────────────────── */
 const VIDEO_TYPES = ['ZOOM', 'YOUTUBE', 'DRIVE', 'OTHER'] as const;
-const RECORDING_STATUSES = ['ANYONE', 'STUDENTS_ONLY', 'PAID_ONLY', 'PRIVATE', 'INACTIVE'] as const;
+const RECORDING_STATUSES = ['ANYONE', 'STUDENTS_ONLY', 'ENROLLED_ONLY', 'PAID_ONLY', 'PRIVATE', 'INACTIVE'] as const;
 
 const EMPTY_FORM = {
   title: '',

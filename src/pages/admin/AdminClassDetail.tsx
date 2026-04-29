@@ -223,6 +223,12 @@ function formatPhysicalSlotLabel(slot: Pick<PhysicalMonitorSlot, 'date' | 'sessi
   return `${slot.date}${range}`;
 }
 
+function formatPhysicalClockTime(raw: string | null | undefined) {
+  const value = typeof raw === 'string' ? raw.trim() : '';
+  if (!value || value === '00:00') return '—';
+  return /^([01]\d|2[0-3]):([0-5]\d)$/.test(value) ? value : value;
+}
+
 function buildReadableSessionId(date: string, sessionTime: string, sessionCode: string | null) {
   const datePart = date.replace(/-/g, '');
   const timePart = /^([01]\d|2[0-3]):([0-5]\d)$/.test(sessionTime)
@@ -548,6 +554,19 @@ export default function AdminClassDetail() {
   const [paymentViewEnr, setPaymentViewEnr] = useState<any>(null);
   const [paymentViewData, setPaymentViewData] = useState<any[]>([]);
   const [paymentViewLoading, setPaymentViewLoading] = useState(false);
+  const [studentImageCardEnr, setStudentImageCardEnr] = useState<any>(null);
+  const [studentProfileCardEnr, setStudentProfileCardEnr] = useState<any>(null);
+  const [studentProfileCardLoading, setStudentProfileCardLoading] = useState(false);
+  const [studentProfileCardData, setStudentProfileCardData] = useState<{
+    paymentSlips: Array<{ id: string; monthId: string; monthName: string; type: string; amount: number | null; paidDate: string | null; status: string; transactionId: string | null }>;
+    paymentSummary: { total: number; paid: number; pending: number };
+    physicalRows: Array<{ key: string; date: string; sessionTime: string; sessionLabel: string; status: string; weekName: string | null }>;
+    physicalCounts: { present: number; late: number; absent: number; excused: number; total: number };
+    recordingSessions: any[];
+    liveSessions: any[];
+  }>({ paymentSlips: [], paymentSummary: { total: 0, paid: 0, pending: 0 }, physicalRows: [], physicalCounts: { present: 0, late: 0, absent: 0, excused: 0, total: 0 }, recordingSessions: [], liveSessions: [] });
+  const [studentAvatarUploading, setStudentAvatarUploading] = useState(false);
+  const [studentAvatarError, setStudentAvatarError] = useState('');
 
   const [selectedReportUserIds, setSelectedReportUserIds] = useState<string[]>([]);
   const [reportIncludePayments, setReportIncludePayments] = useState(true);
@@ -3188,6 +3207,133 @@ export default function AdminClassDetail() {
     }
   };
 
+  const openStudentProfileCard = async (enr: any) => {
+    setStudentProfileCardEnr(enr);
+    setStudentProfileCardLoading(true);
+    setStudentAvatarError('');
+    setStudentProfileCardData({
+      paymentSlips: [],
+      paymentSummary: { total: 0, paid: 0, pending: 0 },
+      physicalRows: [],
+      physicalCounts: { present: 0, late: 0, absent: 0, excused: 0, total: 0 },
+      recordingSessions: [],
+      liveSessions: [],
+    });
+    try {
+      const [studentPaymentsRes, datesRes, recRes, liveRes] = await Promise.all([
+        api.get(`/payments/student/${enr.userId}`).catch(() => ({ data: [] })),
+        api.get(`/attendance/class-attendance/class/${id}/dates`).catch(() => ({ data: [] })),
+        api.get(`/attendance/watch-sessions/class/${id}`).catch(() => ({ data: [] })),
+        api.get(`/attendance/live-sessions/class/${id}`).catch(() => ({ data: [] })),
+      ]);
+
+      const allSlips: any[] = Array.isArray(studentPaymentsRes.data) ? studentPaymentsRes.data : [];
+      const classSlips = allSlips.filter((s: any) => s.month?.classId === id);
+      const paymentSlips = classSlips.map((s: any) => ({
+        id: s.id,
+        monthId: s.monthId,
+        monthName: s.month?.name ? `${s.month.name}${s.month?.year ? ` ${s.month.year}` : ''}` : '-',
+        type: s.type || 'MONTHLY',
+        amount: typeof s.amount === 'number' ? s.amount : null,
+        paidDate: s.paidDate || s.createdAt || null,
+        status: s.status || 'PENDING',
+        transactionId: s.transactionId || null,
+      })).sort((a, b) => {
+        const ta = new Date(a.paidDate || 0).getTime();
+        const tb = new Date(b.paidDate || 0).getTime();
+        return tb - ta;
+      });
+      const paid = paymentSlips.filter((s) => s.status === 'VERIFIED').length;
+      const pending = paymentSlips.filter((s) => s.status === 'PENDING').length;
+
+      const dates: string[] = Array.isArray(datesRes.data) ? datesRes.data.filter((v: any) => typeof v === 'string').sort() : [];
+
+      let physicalRows: Array<{ key: string; date: string; sessionTime: string; sessionLabel: string; status: string; weekName: string | null }> = [];
+      let physicalCounts = { present: 0, late: 0, absent: 0, excused: 0, total: 0 };
+      if (dates.length > 0) {
+        try {
+          const monitorRes = await api.get(`/attendance/class-attendance/class/${id}/monitor`, {
+            params: { from: dates[0], to: dates[dates.length - 1] },
+          });
+          const slots: any[] = Array.isArray(monitorRes.data?.slots) ? monitorRes.data.slots : [];
+          const students: any[] = Array.isArray(monitorRes.data?.students) ? monitorRes.data.students : [];
+          const me = students.find((r: any) => r.userId === enr.userId);
+          const statuses = me?.statuses || {};
+          physicalRows = slots
+            .map((slot: any) => {
+              const status = statuses[slot.key];
+              if (!status) return null;
+              return {
+                key: slot.key,
+                date: typeof slot.date === 'string' ? slot.date : '',
+                sessionTime: typeof slot.sessionTime === 'string' ? slot.sessionTime : '00:00',
+                sessionLabel: typeof slot.label === 'string' && slot.label.trim()
+                  ? slot.label.trim()
+                  : (typeof slot.sessionCode === 'string' && slot.sessionCode.trim() ? slot.sessionCode.trim() : '—'),
+                status,
+                weekName: typeof slot.week === 'string' && slot.week.trim() ? slot.week.trim() : null,
+              };
+            })
+            .filter(Boolean) as typeof physicalRows;
+          for (const r of physicalRows) {
+            physicalCounts.total += 1;
+            if (r.status === 'PRESENT') physicalCounts.present += 1;
+            else if (r.status === 'LATE') physicalCounts.late += 1;
+            else if (r.status === 'ABSENT') physicalCounts.absent += 1;
+            else if (r.status === 'EXCUSED') physicalCounts.excused += 1;
+          }
+        } catch {
+          // Non-fatal
+        }
+      }
+
+      const allRecordingSessions: any[] = Array.isArray(recRes.data) ? recRes.data : [];
+      const recordingSessions = allRecordingSessions
+        .filter((r: any) => r.userId === enr.userId)
+        .sort((a: any, b: any) => new Date(b.startedAt || 0).getTime() - new Date(a.startedAt || 0).getTime());
+
+      const allLiveSessions: any[] = Array.isArray(liveRes.data) ? liveRes.data : [];
+      const liveSessions = allLiveSessions
+        .filter((r: any) => r.userId === enr.userId)
+        .sort((a: any, b: any) => new Date(b.startedAt || b.scheduledAt || 0).getTime() - new Date(a.startedAt || a.scheduledAt || 0).getTime());
+
+      setStudentProfileCardData({
+        paymentSlips,
+        paymentSummary: { total: paymentSlips.length, paid, pending },
+        physicalRows,
+        physicalCounts,
+        recordingSessions,
+        liveSessions,
+      });
+    } catch {
+      // Non-fatal: keep defaults
+    } finally {
+      setStudentProfileCardLoading(false);
+    }
+  };
+
+  const handleStudentAvatarUpload = async (file: File) => {
+    if (!studentProfileCardEnr?.userId) return;
+    setStudentAvatarUploading(true);
+    setStudentAvatarError('');
+    try {
+      const url = await uploadImage(file, 'avatars');
+      await api.patch(`/users/students/${studentProfileCardEnr.userId}/profile`, { avatarUrl: url });
+      // Update card state and the enrollment list locally so UI reflects immediately
+      setStudentProfileCardEnr((prev: any) => prev ? {
+        ...prev,
+        user: { ...prev.user, profile: { ...(prev.user?.profile || {}), avatarUrl: url } },
+      } : prev);
+      setEnrollments((prev: any[]) => prev.map((e: any) => e.userId === studentProfileCardEnr.userId
+        ? { ...e, user: { ...e.user, profile: { ...(e.user?.profile || {}), avatarUrl: url } } }
+        : e));
+    } catch (err: any) {
+      setStudentAvatarError(err.response?.data?.message || err.message || 'Upload failed');
+    } finally {
+      setStudentAvatarUploading(false);
+    }
+  };
+
   const enrolledIds = useMemo(
     () => new Set(enrollments.map((e: any) => e.userId)),
     [enrollments],
@@ -4025,13 +4171,32 @@ export default function AdminClassDetail() {
       render: (enr) => (
         <div className="flex items-center gap-2.5">
           {enr.user?.profile?.avatarUrl ? (
-            <img src={enr.user.profile.avatarUrl} alt="" className="w-7 h-7 rounded-full object-cover flex-shrink-0" />
+            <button
+              type="button"
+              onClick={() => setStudentImageCardEnr(enr)}
+              className="flex-shrink-0 cursor-zoom-in"
+              title="View image card"
+            >
+              <img src={enr.user.profile.avatarUrl} alt="" className="w-7 h-7 rounded-full object-cover" />
+            </button>
           ) : (
-            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+            <button
+              type="button"
+              onClick={() => setStudentImageCardEnr(enr)}
+              className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 cursor-zoom-in"
+              title="View image card"
+            >
               {(enr.user?.profile?.fullName || enr.user?.email || '?')[0].toUpperCase()}
-            </div>
+            </button>
           )}
-          <span className="font-semibold text-slate-800">{enr.user?.profile?.fullName || '-'}</span>
+          <button
+            type="button"
+            onClick={() => void openStudentProfileCard(enr)}
+            className="font-semibold text-slate-800 hover:text-blue-600 transition text-left"
+            title="View full student details"
+          >
+            {enr.user?.profile?.fullName || '-'}
+          </button>
         </div>
       ),
     },
@@ -5595,13 +5760,14 @@ export default function AdminClassDetail() {
                   rows={filteredEnrollments}
                   getRowId={(row) => row.userId}
                   tableHeight={studentsViewMode === 'ADVANCED' ? 'calc(100vh - 500px)' : 'calc(100vh - 430px)'}
+                  onRowClick={(row) => void openStudentProfileCard(row)}
                 />
               )}
             </div>
           </div>
 
           {pricingModalRow && createPortal(
-            <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm overflow-y-auto" onClick={() => setPricingModalRow(null)}>
+            <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm overflow-y-auto">
               <div className="min-h-full flex items-center justify-center p-4">
                 <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md" onClick={(event) => event.stopPropagation()}>
                   <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
@@ -5690,7 +5856,7 @@ export default function AdminClassDetail() {
           )}
 
           {detailModalEnr && createPortal(
-            <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm overflow-y-auto" onClick={() => setDetailModalEnr(null)}>
+            <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm overflow-y-auto">
               <div className="min-h-full flex items-center justify-center p-4">
                 <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
                   <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
@@ -5739,7 +5905,7 @@ export default function AdminClassDetail() {
           )}
 
           {paymentViewEnr && createPortal(
-            <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm overflow-y-auto" onClick={() => setPaymentViewEnr(null)}>
+            <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm overflow-y-auto">
               <div className="min-h-full flex items-center justify-center p-4">
                 <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
                   <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
@@ -5787,6 +5953,398 @@ export default function AdminClassDetail() {
                     <div className="mt-4 flex justify-end">
                       <button type="button" onClick={() => setPaymentViewEnr(null)} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50">Close</button>
                     </div>
+                  </div>
+                </div>
+              </div>
+            </div>,
+            document.body,
+          )}
+
+          {studentImageCardEnr && createPortal(
+            <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm overflow-y-auto">
+              <div className="min-h-full flex items-center justify-center p-4">
+                <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100">
+                    <h2 className="text-sm font-bold text-slate-800">Student Image Card</h2>
+                    <button onClick={() => setStudentImageCardEnr(null)} className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition" title="Close">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                  </div>
+                  <div className="p-5 flex flex-col items-center">
+                    {studentImageCardEnr.user?.profile?.avatarUrl ? (
+                      <img
+                        src={studentImageCardEnr.user.profile.avatarUrl}
+                        alt={studentImageCardEnr.user?.profile?.fullName || 'Student'}
+                        className="w-64 h-64 rounded-2xl object-cover ring-4 ring-blue-100 shadow-lg"
+                      />
+                    ) : (
+                      <div className="w-64 h-64 rounded-2xl bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center ring-4 ring-blue-100 shadow-lg">
+                        <span className="text-white text-7xl font-bold">
+                          {(studentImageCardEnr.user?.profile?.fullName || studentImageCardEnr.user?.email || '?')[0].toUpperCase()}
+                        </span>
+                      </div>
+                    )}
+                    <div className="mt-5 text-center">
+                      <p className="text-base font-bold text-slate-800">{studentImageCardEnr.user?.profile?.fullName || '-'}</p>
+                      <p className="text-xs text-slate-500 mt-0.5">{studentImageCardEnr.user?.email || '-'}</p>
+                      {studentImageCardEnr.user?.profile?.instituteId && (
+                        <p className="text-xs font-mono text-blue-600 mt-1">ID: {studentImageCardEnr.user.profile.instituteId}</p>
+                      )}
+                      {studentImageCardEnr.user?.profile?.barcodeId && (
+                        <p className="text-xs font-mono text-emerald-700 mt-0.5">Barcode: {studentImageCardEnr.user.profile.barcodeId}</p>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setStudentImageCardEnr(null)}
+                      className="mt-5 w-full rounded-xl bg-slate-800 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-900 transition"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>,
+            document.body,
+          )}
+
+          {studentProfileCardEnr && createPortal(
+            <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm overflow-y-auto">
+              <div className="min-h-full flex items-center justify-center p-4">
+                <div className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                  {/* Header: image | name + meta | close */}
+                  <div className="flex items-start justify-between px-6 py-5 border-b border-slate-100 bg-gradient-to-r from-blue-50 to-indigo-50 gap-4">
+                    <div className="flex items-start gap-4 flex-1 min-w-0">
+                      <div className="relative flex-shrink-0">
+                        {studentProfileCardEnr.user?.profile?.avatarUrl ? (
+                          <img src={studentProfileCardEnr.user.profile.avatarUrl} alt="" className="w-20 h-20 rounded-2xl object-cover ring-2 ring-white shadow" />
+                        ) : (
+                          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white font-bold text-2xl ring-2 ring-white shadow">
+                            {(studentProfileCardEnr.user?.profile?.fullName || studentProfileCardEnr.user?.email || '?')[0].toUpperCase()}
+                          </div>
+                        )}
+                        <div className="absolute -bottom-1 -right-1">
+                          <CropImageInput
+                            onFile={(file) => void handleStudentAvatarUpload(file)}
+                            aspectRatio={1}
+                            loading={studentAvatarUploading}
+                            label={studentAvatarUploading ? '...' : '📷'}
+                            cropTitle="Crop Student Avatar"
+                            className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-600 text-white text-xs font-semibold shadow-md ring-2 ring-white hover:bg-blue-700 transition cursor-pointer"
+                          />
+                        </div>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h2 className="text-lg font-bold text-slate-800 truncate">{studentProfileCardEnr.user?.profile?.fullName || '-'}</h2>
+                        <p className="text-xs text-slate-500 truncate">{studentProfileCardEnr.user?.email || '-'}</p>
+                        <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px]">
+                          {studentProfileCardEnr.user?.profile?.instituteId && (
+                            <span className="inline-flex items-center rounded-full bg-blue-100 text-blue-700 px-2 py-0.5 font-mono font-semibold">ID: {studentProfileCardEnr.user.profile.instituteId}</span>
+                          )}
+                          {studentProfileCardEnr.user?.profile?.phone && (
+                            <span className="inline-flex items-center rounded-full bg-slate-100 text-slate-600 px-2 py-0.5 font-medium">{studentProfileCardEnr.user.profile.phone}</span>
+                          )}
+                          <span className="inline-flex items-center rounded-full bg-indigo-100 text-indigo-700 px-2 py-0.5 font-semibold">{studentProfileCardEnr.paymentType || 'FULL'}</span>
+                          {typeof studentProfileCardEnr.effectiveMonthlyFee === 'number' && (
+                            <span className="inline-flex items-center rounded-full bg-emerald-100 text-emerald-700 px-2 py-0.5 font-semibold">{formatMoney(studentProfileCardEnr.effectiveMonthlyFee)}/mo</span>
+                          )}
+                        </div>
+                        {studentAvatarError && (
+                          <p className="mt-1.5 text-[11px] text-red-600">{studentAvatarError}</p>
+                        )}
+                      </div>
+                    </div>
+                    <button onClick={() => setStudentProfileCardEnr(null)} className="w-9 h-9 rounded-lg flex items-center justify-center text-slate-500 hover:text-slate-700 hover:bg-white/70 transition flex-shrink-0" title="Close">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                  </div>
+
+                  {/* Action buttons */}
+                  <div className="px-6 py-3 border-b border-slate-100 bg-white flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => { void exportSingleStudentReport(studentProfileCardEnr); }}
+                      disabled={reporting}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-50 text-emerald-700 text-xs font-semibold hover:bg-emerald-100 transition border border-emerald-200 disabled:opacity-50"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 16V4m0 12l-4-4m4 4l4-4M4 20h16" /></svg>
+                      Report PDF
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setStudentProfileCardEnr(null); openDetailModal(studentProfileCardEnr); }}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-sky-50 text-sky-700 text-xs font-semibold hover:bg-sky-100 transition border border-sky-200"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 112.828 2.828L11.828 15.828a2 2 0 01-1.414.586H8v-2.414a2 2 0 01.586-1.414z" /></svg>
+                      Edit Details
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setStudentProfileCardEnr(null); void openPaymentView(studentProfileCardEnr); }}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-50 text-amber-700 text-xs font-semibold hover:bg-amber-100 transition border border-amber-200"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
+                      Payments History
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setStudentProfileCardEnr(null); openPricingModal(studentProfileCardEnr); }}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-indigo-50 text-indigo-700 text-xs font-semibold hover:bg-indigo-100 transition border border-indigo-200"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 1.343-3 3m3-3c1.657 0 3 1.343 3 3m-3-3V5m0 6v8m0 0a2 2 0 100-4 2 2 0 000 4z" /></svg>
+                      Edit Price
+                    </button>
+                    <div className="ml-auto" />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (window.confirm(`Unenroll ${studentProfileCardEnr.user?.profile?.fullName || studentProfileCardEnr.user?.email || 'this student'} from this class?`)) {
+                          setStudentProfileCardEnr(null);
+                          handleUnenroll(studentProfileCardEnr.userId);
+                        }
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-red-50 text-red-700 text-xs font-semibold hover:bg-red-100 transition border border-red-200"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6v1h12v-1a6 6 0 00-6-6zM21 12h-6" /></svg>
+                      Unenroll
+                    </button>
+                  </div>
+
+                  <div className="max-h-[70vh] overflow-y-auto p-6 space-y-5">
+                    {/* Personal details */}
+                    <section>
+                      <h3 className="text-xs font-bold uppercase tracking-wide text-slate-500 mb-3">Personal Details</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {[
+                          { label: 'Full Name', value: studentProfileCardEnr.user?.profile?.fullName },
+                          { label: 'Email', value: studentProfileCardEnr.user?.email },
+                          { label: 'Phone', value: studentProfileCardEnr.user?.profile?.phone },
+                          { label: 'WhatsApp', value: studentProfileCardEnr.user?.profile?.whatsappPhone },
+                          { label: 'Institute ID', value: studentProfileCardEnr.user?.profile?.instituteId },
+                          { label: 'Barcode ID', value: studentProfileCardEnr.user?.profile?.barcodeId },
+                          { label: 'School', value: studentProfileCardEnr.user?.profile?.school },
+                          { label: 'Address', value: studentProfileCardEnr.user?.profile?.address },
+                          { label: 'Date of Birth', value: studentProfileCardEnr.user?.profile?.dateOfBirth ? new Date(studentProfileCardEnr.user.profile.dateOfBirth).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : null },
+                          { label: 'Occupation', value: studentProfileCardEnr.user?.profile?.occupation },
+                          { label: 'Guardian Name', value: studentProfileCardEnr.user?.profile?.guardianName },
+                          { label: 'Guardian Phone', value: studentProfileCardEnr.user?.profile?.guardianPhone },
+                          { label: 'Relationship', value: studentProfileCardEnr.user?.profile?.relationship },
+                          { label: 'Enrolled', value: studentProfileCardEnr.createdAt ? new Date(studentProfileCardEnr.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : null },
+                          { label: 'Payment Type', value: studentProfileCardEnr.paymentType || 'FULL' },
+                          { label: 'Monthly Fee', value: typeof studentProfileCardEnr.effectiveMonthlyFee === 'number' ? formatMoney(studentProfileCardEnr.effectiveMonthlyFee) : null },
+                        ].map((field) => (
+                          <div key={field.label} className="rounded-xl border border-slate-100 bg-slate-50/60 px-3 py-2">
+                            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">{field.label}</p>
+                            <p className="text-sm text-slate-700 mt-0.5 break-words">{field.value || '-'}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+
+                    {studentProfileCardLoading ? (
+                      <div className="flex items-center justify-center py-10 text-slate-400 text-sm">
+                        <div className="w-5 h-5 rounded-full border-2 border-blue-500 border-t-transparent animate-spin mr-2" />
+                        Loading class data...
+                      </div>
+                    ) : (
+                      <>
+                        {/* Attendance — Week | Date | Session | Time | Status */}
+                        <section>
+                          <h3 className="text-xs font-bold uppercase tracking-wide text-slate-500 mb-3">Attendance</h3>
+                          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-3">
+                            <div className="rounded-xl border border-slate-100 bg-white px-3 py-2 text-center">
+                              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Total</p>
+                              <p className="text-lg font-bold text-slate-700">{studentProfileCardData.physicalCounts.total}</p>
+                            </div>
+                            <div className="rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-center">
+                              <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-600">Present</p>
+                              <p className="text-lg font-bold text-emerald-700">{studentProfileCardData.physicalCounts.present}</p>
+                            </div>
+                            <div className="rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-center">
+                              <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-600">Late</p>
+                              <p className="text-lg font-bold text-amber-700">{studentProfileCardData.physicalCounts.late}</p>
+                            </div>
+                            <div className="rounded-xl border border-red-100 bg-red-50 px-3 py-2 text-center">
+                              <p className="text-[10px] font-semibold uppercase tracking-wide text-red-600">Absent</p>
+                              <p className="text-lg font-bold text-red-700">{studentProfileCardData.physicalCounts.absent}</p>
+                            </div>
+                            <div className="rounded-xl border border-blue-100 bg-blue-50 px-3 py-2 text-center">
+                              <p className="text-[10px] font-semibold uppercase tracking-wide text-blue-600">Excused</p>
+                              <p className="text-lg font-bold text-blue-700">{studentProfileCardData.physicalCounts.excused}</p>
+                            </div>
+                          </div>
+                          {studentProfileCardData.physicalRows.length === 0 ? (
+                            <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-4 text-center text-xs text-slate-400">No attendance records</div>
+                          ) : (
+                            <div className="overflow-x-auto rounded-xl border border-slate-100 max-h-72 overflow-y-auto">
+                              <table className="w-full text-sm">
+                                <thead className="sticky top-0 bg-slate-50 z-10">
+                                  <tr className="text-xs text-slate-500">
+                                    <th className="px-3 py-2 text-left font-semibold">Week Name</th>
+                                    <th className="px-3 py-2 text-left font-semibold">Date</th>
+                                    <th className="px-3 py-2 text-left font-semibold">Session</th>
+                                    <th className="px-3 py-2 text-left font-semibold">Time</th>
+                                    <th className="px-3 py-2 text-center font-semibold">Status</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-50">
+                                  {studentProfileCardData.physicalRows.map((r) => (
+                                    <tr key={r.key} className="hover:bg-slate-50/60">
+                                      <td className="px-3 py-2 text-slate-700 font-medium">{r.weekName || '-'}</td>
+                                      <td className="px-3 py-2 text-slate-600">{r.date}</td>
+                                      <td className="px-3 py-2 text-slate-500 text-xs font-medium">{r.sessionLabel}</td>
+                                      <td className="px-3 py-2 text-slate-500 text-xs">{formatPhysicalClockTime(r.sessionTime)}</td>
+                                      <td className="px-3 py-2 text-center">
+                                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                                          r.status === 'PRESENT' ? 'bg-emerald-50 text-emerald-700' :
+                                          r.status === 'LATE' ? 'bg-amber-50 text-amber-700' :
+                                          r.status === 'ABSENT' ? 'bg-red-50 text-red-600' :
+                                          r.status === 'EXCUSED' ? 'bg-blue-50 text-blue-700' :
+                                          'bg-slate-100 text-slate-500'
+                                        }`}>
+                                          {r.status}
+                                        </span>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
+                        </section>
+
+                        {/* Payments — Month | Type | Price | Date | Status */}
+                        <section>
+                          <h3 className="text-xs font-bold uppercase tracking-wide text-slate-500 mb-3">Payments — This Class</h3>
+                          <div className="grid grid-cols-3 gap-2 mb-3">
+                            <div className="rounded-xl border border-slate-100 bg-white px-3 py-2 text-center">
+                              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Total Slips</p>
+                              <p className="text-lg font-bold text-slate-700">{studentProfileCardData.paymentSummary.total}</p>
+                            </div>
+                            <div className="rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-center">
+                              <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-600">Verified</p>
+                              <p className="text-lg font-bold text-emerald-700">{studentProfileCardData.paymentSummary.paid}</p>
+                            </div>
+                            <div className="rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-center">
+                              <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-600">Pending</p>
+                              <p className="text-lg font-bold text-amber-700">{studentProfileCardData.paymentSummary.pending}</p>
+                            </div>
+                          </div>
+                          {studentProfileCardData.paymentSlips.length === 0 ? (
+                            <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-4 text-center text-xs text-slate-400">No payment records</div>
+                          ) : (
+                            <div className="overflow-x-auto rounded-xl border border-slate-100 max-h-72 overflow-y-auto">
+                              <table className="w-full text-sm">
+                                <thead className="sticky top-0 bg-slate-50 z-10">
+                                  <tr className="text-xs text-slate-500">
+                                    <th className="px-3 py-2 text-left font-semibold">Month</th>
+                                    <th className="px-3 py-2 text-left font-semibold">Type</th>
+                                    <th className="px-3 py-2 text-right font-semibold">Price</th>
+                                    <th className="px-3 py-2 text-left font-semibold">Date</th>
+                                    <th className="px-3 py-2 text-center font-semibold">Status</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-50">
+                                  {studentProfileCardData.paymentSlips.map((s) => (
+                                    <tr key={s.id} className="hover:bg-slate-50/60">
+                                      <td className="px-3 py-2 text-slate-700 font-medium">{s.monthName}</td>
+                                      <td className="px-3 py-2 text-slate-600 text-xs">{s.type}</td>
+                                      <td className="px-3 py-2 text-right text-slate-700">{s.amount == null ? '-' : formatMoney(s.amount)}</td>
+                                      <td className="px-3 py-2 text-slate-400 text-xs">{s.paidDate ? new Date(s.paidDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'}</td>
+                                      <td className="px-3 py-2 text-center">
+                                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                                          s.status === 'VERIFIED' ? 'bg-emerald-50 text-emerald-700' :
+                                          s.status === 'PENDING' ? 'bg-amber-50 text-amber-700' :
+                                          s.status === 'LATE' ? 'bg-orange-50 text-orange-700' :
+                                          s.status === 'REJECTED' ? 'bg-red-50 text-red-600' :
+                                          'bg-slate-100 text-slate-500'
+                                        }`}>
+                                          {s.status}
+                                        </span>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
+                        </section>
+
+                        {/* Recording Sessions */}
+                        <section>
+                          <h3 className="text-xs font-bold uppercase tracking-wide text-slate-500 mb-3">Recording Sessions ({studentProfileCardData.recordingSessions.length})</h3>
+                          {studentProfileCardData.recordingSessions.length === 0 ? (
+                            <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-4 text-center text-xs text-slate-400">No recording activity</div>
+                          ) : (
+                            <div className="overflow-x-auto rounded-xl border border-slate-100 max-h-60 overflow-y-auto">
+                              <table className="w-full text-sm">
+                                <thead className="sticky top-0 bg-slate-50 z-10">
+                                  <tr className="text-xs text-slate-500">
+                                    <th className="px-3 py-2 text-left font-semibold">Recording</th>
+                                    <th className="px-3 py-2 text-left font-semibold">Month</th>
+                                    <th className="px-3 py-2 text-left font-semibold">Started</th>
+                                    <th className="px-3 py-2 text-right font-semibold">Watched</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-50">
+                                  {studentProfileCardData.recordingSessions.map((s: any, i: number) => (
+                                    <tr key={s.id || i} className="hover:bg-slate-50/60">
+                                      <td className="px-3 py-2 text-slate-700">{s.recording?.title || '-'}</td>
+                                      <td className="px-3 py-2 text-slate-500 text-xs">{s.recording?.month?.name || '-'}</td>
+                                      <td className="px-3 py-2 text-slate-400 text-xs">{s.startedAt ? new Date(s.startedAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}</td>
+                                      <td className="px-3 py-2 text-right text-slate-700 font-medium">{fmtTime(s.totalWatchedSec || 0)}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
+                        </section>
+
+                        {/* Live Sessions */}
+                        <section>
+                          <h3 className="text-xs font-bold uppercase tracking-wide text-slate-500 mb-3">Live Class Sessions ({studentProfileCardData.liveSessions.length})</h3>
+                          {studentProfileCardData.liveSessions.length === 0 ? (
+                            <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-4 text-center text-xs text-slate-400">No live class participation</div>
+                          ) : (
+                            <div className="overflow-x-auto rounded-xl border border-slate-100 max-h-60 overflow-y-auto">
+                              <table className="w-full text-sm">
+                                <thead className="sticky top-0 bg-slate-50 z-10">
+                                  <tr className="text-xs text-slate-500">
+                                    <th className="px-3 py-2 text-left font-semibold">Live Session</th>
+                                    <th className="px-3 py-2 text-left font-semibold">Date</th>
+                                    <th className="px-3 py-2 text-center font-semibold">Status</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-50">
+                                  {studentProfileCardData.liveSessions.map((s: any, i: number) => (
+                                    <tr key={s.id || i} className="hover:bg-slate-50/60">
+                                      <td className="px-3 py-2 text-slate-700">{s.liveSession?.title || s.title || '-'}</td>
+                                      <td className="px-3 py-2 text-slate-400 text-xs">{(s.startedAt || s.scheduledAt) ? new Date(s.startedAt || s.scheduledAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}</td>
+                                      <td className="px-3 py-2 text-center">
+                                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${s.status === 'JOINED' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                                          {s.status || '-'}
+                                        </span>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
+                        </section>
+                      </>
+                    )}
+                  </div>
+
+                  <div className="px-6 py-3 border-t border-slate-100 flex justify-end bg-slate-50/50">
+                    <button
+                      type="button"
+                      onClick={() => setStudentProfileCardEnr(null)}
+                      className="rounded-xl bg-slate-800 px-5 py-2 text-sm font-semibold text-white hover:bg-slate-900 transition"
+                    >
+                      Close
+                    </button>
                   </div>
                 </div>
               </div>

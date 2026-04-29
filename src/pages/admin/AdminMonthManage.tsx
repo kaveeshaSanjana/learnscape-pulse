@@ -10,7 +10,7 @@ import ClassMonthLiveLessonsPage from '../ClassMonthLiveLessonsPage';
 
 /* ─── Constants ──────────────────────────────────────── */
 
-const VISIBILITY_OPTIONS = ['ANYONE', 'STUDENTS_ONLY', 'PAID_ONLY', 'PRIVATE', 'INACTIVE'];
+const VISIBILITY_OPTIONS = ['ANYONE', 'STUDENTS_ONLY', 'ENROLLED_ONLY', 'PAID_ONLY', 'PRIVATE', 'INACTIVE'];
 
 const statusBadge = (s: string) => {
   const map: Record<string, string> = {
@@ -310,8 +310,8 @@ export default function AdminMonthManage() {
 
   const requestedTab = (searchParams.get('tab') || '').trim();
   const requestedAttendanceType = (searchParams.get('attendanceType') || '').trim();
-  const initialTab: 'recordings' | 'liveLessons' | 'attendance' =
-    requestedTab === 'liveLessons' || requestedTab === 'attendance' || requestedTab === 'recordings'
+  const initialTab: 'recordings' | 'liveLessons' | 'attendance' | 'payments' =
+    requestedTab === 'liveLessons' || requestedTab === 'attendance' || requestedTab === 'recordings' || requestedTab === 'payments'
       ? requestedTab
       : 'recordings';
   const initialAttendanceType: 'recordings' | 'lectures' =
@@ -324,7 +324,62 @@ export default function AdminMonthManage() {
   const [loading, setLoading] = useState(true);
 
   /* ─── Tab ───────────────────────────────────────────── */
-  const [tab, setTab] = useState<'recordings' | 'liveLessons' | 'attendance'>(initialTab);
+  const [tab, setTab] = useState<'recordings' | 'liveLessons' | 'attendance' | 'payments'>(initialTab);
+
+  /* ─── Payments ──────────────────────────────────────── */
+  type PaymentSlipMeta = {
+    id: string;
+    status: 'PENDING' | 'VERIFIED' | 'REJECTED' | 'LATE';
+    type: string;
+    slipUrl: string;
+    amount: number | null;
+    paidDate: string | null;
+    adminNote: string | null;
+    createdAt: string;
+  };
+  type PaymentStudentRow = {
+    userId: string;
+    profile: { fullName: string; instituteId: string | null; avatarUrl: string | null; phone: string | null } | null;
+    email: string;
+    paymentType: 'FULL' | 'HALF' | 'FREE' | null;
+    customMonthlyFee: number | null;
+    expectedAmount: number | null;
+    hasCustomMonthlyFee: boolean;
+    paymentStatus: 'PAID' | 'LATE' | 'PENDING' | 'UNPAID';
+    slip: PaymentSlipMeta | null;
+  };
+  type PaymentsResponse = {
+    class: { id: string; name: string; subject: string | null; monthlyFee: number | null };
+    month: { id: string; name: string; year: number; month: number };
+    monthlyFee: number | null;
+    students: PaymentStudentRow[];
+    summary: { total: number; paid: number; late: number; pending: number; unpaid: number };
+  };
+  const [paymentsData, setPaymentsData] = useState<PaymentsResponse | null>(null);
+  const [paymentsLoading, setPaymentsLoading] = useState(false);
+  const [paymentsError, setPaymentsError] = useState('');
+  const [paymentSearch, setPaymentSearch] = useState('');
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState<'ALL' | 'PAID' | 'PENDING' | 'UNPAID' | 'LATE'>('ALL');
+  const [verifyingRow, setVerifyingRow] = useState<PaymentStudentRow | null>(null);
+  const [verifyForm, setVerifyForm] = useState({
+    transactionId: '',
+    paidDate: '',
+    paymentMethod: 'ONLINE' as 'ONLINE' | 'PHYSICAL',
+    paymentPortion: 'FULL' as 'FULL' | 'HALF',
+    adminNote: '',
+  });
+  const [verifyBusy, setVerifyBusy] = useState(false);
+  const [verifyError, setVerifyError] = useState('');
+  const [rejectingRow, setRejectingRow] = useState<PaymentStudentRow | null>(null);
+  const [rejectForm, setRejectForm] = useState({ rejectReason: '', adminNote: '' });
+  const [rejectBusy, setRejectBusy] = useState(false);
+  const [rejectError, setRejectError] = useState('');
+  const [manualMarkRow, setManualMarkRow] = useState<PaymentStudentRow | null>(null);
+  const [manualMarkStatus, setManualMarkStatus] = useState<'PAID' | 'LATE' | 'UNPAID'>('PAID');
+  const [manualMarkBusy, setManualMarkBusy] = useState(false);
+  const [manualMarkError, setManualMarkError] = useState('');
+  const [manualMarkForm, setManualMarkForm] = useState({ paidDate: '', adminNote: '' });
+  const [slipPreviewUrl, setSlipPreviewUrl] = useState<string | null>(null);
 
   /* ─── Recording form ─────────────────────────────────── */
   const [showRecForm, setShowRecForm] = useState(false);
@@ -460,7 +515,122 @@ export default function AdminMonthManage() {
     }
   };
 
+  /* ─── Payments loader ───────────────────────────────── */
+  const loadPayments = async () => {
+    if (!classId || !monthId) return;
+    setPaymentsLoading(true);
+    setPaymentsError('');
+    try {
+      const res = await api.get(`/payments/class/${classId}/month/${monthId}`);
+      setPaymentsData(res.data);
+    } catch (err: any) {
+      setPaymentsError(err.response?.data?.message || 'Failed to load payments.');
+      setPaymentsData(null);
+    } finally {
+      setPaymentsLoading(false);
+    }
+  };
+
+  const openVerifyModal = (row: PaymentStudentRow) => {
+    setVerifyingRow(row);
+    setVerifyError('');
+    setVerifyForm({
+      transactionId: row.slip?.id ? '' : '',
+      paidDate: row.slip?.paidDate ? new Date(row.slip.paidDate).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
+      paymentMethod: 'ONLINE',
+      paymentPortion: 'FULL',
+      adminNote: '',
+    });
+  };
+
+  const submitVerify = async () => {
+    if (!verifyingRow?.slip?.id) {
+      setVerifyError('No pending slip to verify. Use Manual Mark instead.');
+      return;
+    }
+    setVerifyBusy(true);
+    setVerifyError('');
+    try {
+      await api.patch(`/payments/${verifyingRow.slip.id}/verify`, {
+        transactionId: verifyForm.transactionId.trim() || undefined,
+        paidDate: verifyForm.paidDate || undefined,
+        paymentMethod: verifyForm.paymentMethod,
+        paymentPortion: verifyForm.paymentPortion,
+        adminNote: verifyForm.adminNote.trim() || undefined,
+      });
+      setVerifyingRow(null);
+      await loadPayments();
+    } catch (err: any) {
+      setVerifyError(err.response?.data?.message || 'Failed to verify payment.');
+    } finally {
+      setVerifyBusy(false);
+    }
+  };
+
+  const openRejectModal = (row: PaymentStudentRow) => {
+    setRejectingRow(row);
+    setRejectError('');
+    setRejectForm({ rejectReason: '', adminNote: '' });
+  };
+
+  const submitReject = async () => {
+    if (!rejectingRow?.slip?.id) {
+      setRejectError('No slip to reject.');
+      return;
+    }
+    setRejectBusy(true);
+    setRejectError('');
+    try {
+      await api.patch(`/payments/${rejectingRow.slip.id}/reject`, {
+        rejectReason: rejectForm.rejectReason.trim() || undefined,
+        adminNote: rejectForm.adminNote.trim() || undefined,
+      });
+      setRejectingRow(null);
+      await loadPayments();
+    } catch (err: any) {
+      setRejectError(err.response?.data?.message || 'Failed to reject payment.');
+    } finally {
+      setRejectBusy(false);
+    }
+  };
+
+  const openManualMarkModal = (row: PaymentStudentRow, defaultStatus: 'PAID' | 'LATE' | 'UNPAID' = 'PAID') => {
+    setManualMarkRow(row);
+    setManualMarkStatus(defaultStatus);
+    setManualMarkError('');
+    setManualMarkForm({
+      paidDate: new Date().toISOString().slice(0, 10),
+      adminNote: '',
+    });
+  };
+
+  const submitManualMark = async () => {
+    if (!manualMarkRow || !monthId) return;
+    setManualMarkBusy(true);
+    setManualMarkError('');
+    try {
+      await api.patch(`/payments/student/${manualMarkRow.userId}/month/${monthId}/status`, {
+        status: manualMarkStatus,
+        paidDate: manualMarkStatus === 'PAID' || manualMarkStatus === 'LATE' ? (manualMarkForm.paidDate || undefined) : undefined,
+        adminNote: manualMarkForm.adminNote.trim() || undefined,
+      });
+      setManualMarkRow(null);
+      await loadPayments();
+    } catch (err: any) {
+      setManualMarkError(err.response?.data?.message || 'Failed to update payment status.');
+    } finally {
+      setManualMarkBusy(false);
+    }
+  };
+
   /* ─── Auto-load attendance when tab opens ────────────── */
+  useEffect(() => {
+    if (tab === 'payments' && classId && monthId && !paymentsData && !paymentsLoading) {
+      void loadPayments();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, classId, monthId]);
+
   useEffect(() => {
     if (tab !== 'attendance') return;
     if (attendanceType === 'recordings') {
@@ -1496,6 +1666,7 @@ export default function AdminMonthManage() {
           { key: 'recordings', label: 'Recordings' },
           { key: 'liveLessons', label: 'Live Lessons' },
           { key: 'attendance', label: 'Attendance' },
+          { key: 'payments', label: 'Payments' },
         ] as const).map(({ key, label }) => (
           <button
             key={key}
@@ -2588,6 +2759,484 @@ export default function AdminMonthManage() {
             </>
           )}
         </div>
+      )}
+
+      {/* ══════════ PAYMENTS TAB ══════════ */}
+      {tab === 'payments' && (
+        <div className="space-y-4">
+          {/* Toolbar */}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="relative">
+                <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[hsl(var(--muted-foreground))]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                <input
+                  value={paymentSearch}
+                  onChange={(e) => setPaymentSearch(e.target.value)}
+                  placeholder="Search by name, ID, or email"
+                  className="pl-9 pr-3 py-2 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] text-xs text-[hsl(var(--foreground))] focus:outline-none focus:ring-2 focus:ring-blue-500/30 w-64"
+                />
+              </div>
+              <select
+                value={paymentStatusFilter}
+                onChange={(e) => setPaymentStatusFilter(e.target.value as any)}
+                className="px-3 py-2 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] text-xs text-[hsl(var(--foreground))] focus:outline-none"
+              >
+                <option value="ALL">All statuses</option>
+                <option value="PAID">Paid</option>
+                <option value="PENDING">Pending</option>
+                <option value="LATE">Late</option>
+                <option value="UNPAID">Unpaid</option>
+              </select>
+            </div>
+            <button
+              onClick={() => void loadPayments()}
+              disabled={paymentsLoading}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] text-xs font-semibold text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] disabled:opacity-50"
+            >
+              <svg className={`w-3.5 h-3.5 ${paymentsLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0A8.003 8.003 0 014.582 15M19.419 15H15" /></svg>
+              Refresh
+            </button>
+          </div>
+
+          {paymentsError && (
+            <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">{paymentsError}</div>
+          )}
+
+          {/* Summary tiles */}
+          {paymentsData && (
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+              <div className="rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] px-3 py-2 text-center">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-[hsl(var(--muted-foreground))]">Total</p>
+                <p className="text-lg font-bold text-[hsl(var(--foreground))]">{paymentsData.summary.total}</p>
+              </div>
+              <div className="rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-center">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-600">Paid</p>
+                <p className="text-lg font-bold text-emerald-700">{paymentsData.summary.paid}</p>
+              </div>
+              <div className="rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-center">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-600">Pending</p>
+                <p className="text-lg font-bold text-amber-700">{paymentsData.summary.pending}</p>
+              </div>
+              <div className="rounded-xl border border-orange-100 bg-orange-50 px-3 py-2 text-center">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-orange-600">Late</p>
+                <p className="text-lg font-bold text-orange-700">{paymentsData.summary.late}</p>
+              </div>
+              <div className="rounded-xl border border-red-100 bg-red-50 px-3 py-2 text-center">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-red-600">Unpaid</p>
+                <p className="text-lg font-bold text-red-700">{paymentsData.summary.unpaid}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Students table */}
+          <div className="bg-[hsl(var(--card))] rounded-2xl border border-[hsl(var(--border))] shadow-sm overflow-hidden">
+            {paymentsLoading ? (
+              <div className="flex items-center justify-center py-16 text-[hsl(var(--muted-foreground))] text-sm gap-2">
+                <div className="w-5 h-5 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
+                Loading payments...
+              </div>
+            ) : !paymentsData ? (
+              <div className="text-center py-16 text-[hsl(var(--muted-foreground))] text-sm">No data loaded</div>
+            ) : (
+              (() => {
+                const q = paymentSearch.trim().toLowerCase();
+                const rows = paymentsData.students.filter((s) => {
+                  if (paymentStatusFilter !== 'ALL' && s.paymentStatus !== paymentStatusFilter) return false;
+                  if (!q) return true;
+                  return [
+                    s.profile?.fullName || '',
+                    s.profile?.instituteId || '',
+                    s.email || '',
+                    s.profile?.phone || '',
+                  ].some((v) => v.toLowerCase().includes(q));
+                });
+                return rows.length === 0 ? (
+                  <div className="text-center py-16 text-[hsl(var(--muted-foreground))] text-sm">No students match the filters.</div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm border-collapse">
+                      <thead>
+                        <tr className="border-b border-[hsl(var(--border))] bg-[hsl(var(--muted)/0.5)]">
+                          <th className="px-4 py-3 text-left text-[11px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-wider">Student</th>
+                          <th className="px-4 py-3 text-left text-[11px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-wider">ID</th>
+                          <th className="px-4 py-3 text-right text-[11px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-wider">Expected</th>
+                          <th className="px-4 py-3 text-center text-[11px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-wider">Status</th>
+                          <th className="px-4 py-3 text-left text-[11px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-wider">Slip</th>
+                          <th className="px-4 py-3 text-right text-[11px] font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-wider">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {rows.map((s) => {
+                          const statusClass =
+                            s.paymentStatus === 'PAID' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                            s.paymentStatus === 'PENDING' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                            s.paymentStatus === 'LATE' ? 'bg-orange-50 text-orange-700 border-orange-200' :
+                            'bg-red-50 text-red-600 border-red-200';
+                          const statusLabel =
+                            s.paymentStatus === 'PAID' ? 'Paid' :
+                            s.paymentStatus === 'PENDING' ? 'Pending' :
+                            s.paymentStatus === 'LATE' ? 'Late' : 'Unpaid';
+                          return (
+                            <tr key={s.userId} className="border-b border-[hsl(var(--border))/0.5] hover:bg-[hsl(var(--muted)/0.2)]">
+                              <td className="px-4 py-3">
+                                <div className="flex items-center gap-2.5">
+                                  {s.profile?.avatarUrl ? (
+                                    <img src={s.profile.avatarUrl} alt="" className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
+                                  ) : (
+                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center flex-shrink-0">
+                                      <span className="text-white font-bold text-[11px]">{getInitials(s.profile?.fullName || '', s.email)}</span>
+                                    </div>
+                                  )}
+                                  <div className="min-w-0">
+                                    <p className="font-semibold text-[hsl(var(--foreground))] text-sm truncate max-w-[200px]">{s.profile?.fullName || '-'}</p>
+                                    <p className="text-[11px] text-[hsl(var(--muted-foreground))] truncate max-w-[200px]">{s.email}</p>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-4 py-3">
+                                <span className="text-xs font-mono text-[hsl(var(--muted-foreground))]">{s.profile?.instituteId || '-'}</span>
+                              </td>
+                              <td className="px-4 py-3 text-right">
+                                <p className="font-semibold text-[hsl(var(--foreground))]">
+                                  {s.expectedAmount == null ? '-' : `Rs ${s.expectedAmount.toLocaleString()}`}
+                                </p>
+                                {s.hasCustomMonthlyFee && (
+                                  <p className="text-[10px] text-indigo-600 font-medium">Custom price</p>
+                                )}
+                                {s.paymentType === 'FREE' && (
+                                  <p className="text-[10px] text-sky-600 font-medium">Free</p>
+                                )}
+                              </td>
+                              <td className="px-4 py-3 text-center">
+                                <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-bold ${statusClass}`}>
+                                  {statusLabel}
+                                </span>
+                                {s.slip?.paidDate && s.paymentStatus === 'PAID' && (
+                                  <p className="text-[10px] text-[hsl(var(--muted-foreground))] mt-1">
+                                    {new Date(s.slip.paidDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                  </p>
+                                )}
+                              </td>
+                              <td className="px-4 py-3">
+                                {s.slip?.slipUrl ? (
+                                  <button
+                                    onClick={() => setSlipPreviewUrl(s.slip!.slipUrl)}
+                                    className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:underline"
+                                    title="Preview slip"
+                                  >
+                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                                    View slip
+                                  </button>
+                                ) : (
+                                  <span className="text-[11px] text-[hsl(var(--muted-foreground))]">—</span>
+                                )}
+                                {s.slip?.adminNote && (
+                                  <p className="text-[10px] text-[hsl(var(--muted-foreground))] mt-0.5 italic max-w-[180px] truncate" title={s.slip.adminNote}>{s.slip.adminNote}</p>
+                                )}
+                              </td>
+                              <td className="px-4 py-3">
+                                <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                                  {s.slip?.status === 'PENDING' && (
+                                    <>
+                                      <button
+                                        onClick={() => openVerifyModal(s)}
+                                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-semibold hover:bg-emerald-100 transition border border-emerald-200"
+                                      >
+                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                                        Verify
+                                      </button>
+                                      <button
+                                        onClick={() => openRejectModal(s)}
+                                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-red-50 text-red-600 text-xs font-semibold hover:bg-red-100 transition border border-red-200"
+                                      >
+                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                                        Reject
+                                      </button>
+                                    </>
+                                  )}
+                                  <button
+                                    onClick={() => openManualMarkModal(s, s.paymentStatus === 'PAID' ? 'UNPAID' : 'PAID')}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-blue-50 text-blue-700 text-xs font-semibold hover:bg-blue-100 transition border border-blue-200"
+                                  >
+                                    Mark...
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                );
+              })()
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Slip preview modal */}
+      {slipPreviewUrl && createPortal(
+        <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm overflow-y-auto">
+          <div className="min-h-full flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100">
+                <h2 className="text-sm font-bold text-slate-800">Payment Slip</h2>
+                <div className="flex items-center gap-2">
+                  <a href={slipPreviewUrl} target="_blank" rel="noreferrer" className="text-xs font-semibold text-blue-600 hover:underline">Open in new tab</a>
+                  <button onClick={() => setSlipPreviewUrl(null)} className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition" title="Close">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                  </button>
+                </div>
+              </div>
+              <div className="p-3 bg-slate-50 max-h-[80vh] overflow-y-auto flex items-center justify-center">
+                <img src={slipPreviewUrl} alt="Slip" className="max-w-full max-h-[75vh] object-contain rounded-lg" />
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body,
+      )}
+
+      {/* Verify slip modal */}
+      {verifyingRow && createPortal(
+        <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm overflow-y-auto">
+          <div className="min-h-full flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-emerald-50">
+                <div>
+                  <h2 className="text-base font-bold text-emerald-800">Verify Payment</h2>
+                  <p className="text-xs text-emerald-700/80 mt-0.5">{verifyingRow.profile?.fullName || verifyingRow.email}</p>
+                </div>
+                <button onClick={() => setVerifyingRow(null)} className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-500 hover:text-slate-700 hover:bg-white/60 transition" title="Close">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              </div>
+              <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+                {verifyingRow.slip?.slipUrl && (
+                  <div className="md:col-span-2 rounded-xl border border-slate-100 bg-slate-50 p-2 flex items-center justify-center max-h-[300px] overflow-hidden">
+                    <img src={verifyingRow.slip.slipUrl} alt="Slip" className="max-h-[280px] object-contain rounded" />
+                  </div>
+                )}
+                <div className="md:col-span-2 grid grid-cols-2 gap-3 text-xs">
+                  <div className="rounded-lg bg-slate-50 px-3 py-2">
+                    <p className="text-[10px] uppercase tracking-wide text-slate-400 font-semibold">Expected</p>
+                    <p className="font-bold text-slate-700">{verifyingRow.expectedAmount == null ? '-' : `Rs ${verifyingRow.expectedAmount.toLocaleString()}`}</p>
+                  </div>
+                  <div className="rounded-lg bg-slate-50 px-3 py-2">
+                    <p className="text-[10px] uppercase tracking-wide text-slate-400 font-semibold">Submitted</p>
+                    <p className="font-bold text-slate-700">{verifyingRow.slip?.amount == null ? '-' : `Rs ${verifyingRow.slip.amount.toLocaleString()}`}</p>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-slate-600">Transaction ID</label>
+                  <input
+                    type="text"
+                    value={verifyForm.transactionId}
+                    onChange={(e) => setVerifyForm((p) => ({ ...p, transactionId: e.target.value }))}
+                    placeholder="Optional reference"
+                    className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-slate-600">Paid date</label>
+                  <input
+                    type="date"
+                    value={verifyForm.paidDate}
+                    onChange={(e) => setVerifyForm((p) => ({ ...p, paidDate: e.target.value }))}
+                    className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-slate-600">Method</label>
+                  <select
+                    value={verifyForm.paymentMethod}
+                    onChange={(e) => setVerifyForm((p) => ({ ...p, paymentMethod: e.target.value as any }))}
+                    className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300"
+                  >
+                    <option value="ONLINE">Online</option>
+                    <option value="PHYSICAL">Physical</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-slate-600">Portion</label>
+                  <select
+                    value={verifyForm.paymentPortion}
+                    onChange={(e) => setVerifyForm((p) => ({ ...p, paymentPortion: e.target.value as any }))}
+                    className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300"
+                  >
+                    <option value="FULL">Full</option>
+                    <option value="HALF">Half</option>
+                  </select>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="text-xs font-semibold text-slate-600">Admin note</label>
+                  <textarea
+                    value={verifyForm.adminNote}
+                    onChange={(e) => setVerifyForm((p) => ({ ...p, adminNote: e.target.value }))}
+                    rows={2}
+                    placeholder="Optional internal note"
+                    className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300"
+                  />
+                </div>
+                {verifyError && (
+                  <div className="md:col-span-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">{verifyError}</div>
+                )}
+              </div>
+              <div className="px-5 py-3 border-t border-slate-100 bg-slate-50 flex justify-end gap-2">
+                <button type="button" onClick={() => setVerifyingRow(null)} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-white">Cancel</button>
+                <button
+                  type="button"
+                  onClick={() => void submitVerify()}
+                  disabled={verifyBusy}
+                  className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+                >
+                  {verifyBusy ? 'Verifying...' : 'Verify Payment'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body,
+      )}
+
+      {/* Reject slip modal */}
+      {rejectingRow && createPortal(
+        <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm overflow-y-auto">
+          <div className="min-h-full flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-red-50">
+                <div>
+                  <h2 className="text-base font-bold text-red-800">Reject Payment</h2>
+                  <p className="text-xs text-red-700/80 mt-0.5">{rejectingRow.profile?.fullName || rejectingRow.email}</p>
+                </div>
+                <button onClick={() => setRejectingRow(null)} className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-500 hover:text-slate-700 hover:bg-white/60 transition" title="Close">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              </div>
+              <div className="p-5 space-y-3">
+                <div>
+                  <label className="text-xs font-semibold text-slate-600">Reason (shown to student)</label>
+                  <input
+                    type="text"
+                    value={rejectForm.rejectReason}
+                    onChange={(e) => setRejectForm((p) => ({ ...p, rejectReason: e.target.value }))}
+                    placeholder="e.g. Unclear slip image"
+                    className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-slate-600">Admin note</label>
+                  <textarea
+                    value={rejectForm.adminNote}
+                    onChange={(e) => setRejectForm((p) => ({ ...p, adminNote: e.target.value }))}
+                    rows={2}
+                    placeholder="Optional internal note"
+                    className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
+                  />
+                </div>
+                {rejectError && (
+                  <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">{rejectError}</div>
+                )}
+              </div>
+              <div className="px-5 py-3 border-t border-slate-100 bg-slate-50 flex justify-end gap-2">
+                <button type="button" onClick={() => setRejectingRow(null)} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-white">Cancel</button>
+                <button
+                  type="button"
+                  onClick={() => void submitReject()}
+                  disabled={rejectBusy}
+                  className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+                >
+                  {rejectBusy ? 'Rejecting...' : 'Reject Payment'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body,
+      )}
+
+      {/* Manual mark modal */}
+      {manualMarkRow && createPortal(
+        <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm overflow-y-auto">
+          <div className="min-h-full flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-blue-50">
+                <div>
+                  <h2 className="text-base font-bold text-blue-800">Manual Payment Mark</h2>
+                  <p className="text-xs text-blue-700/80 mt-0.5">{manualMarkRow.profile?.fullName || manualMarkRow.email}</p>
+                </div>
+                <button onClick={() => setManualMarkRow(null)} className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-500 hover:text-slate-700 hover:bg-white/60 transition" title="Close">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              </div>
+              <div className="p-5 space-y-3">
+                <div>
+                  <label className="text-xs font-semibold text-slate-600">Status</label>
+                  <div className="mt-1 grid grid-cols-3 gap-2">
+                    {(['PAID', 'LATE', 'UNPAID'] as const).map((opt) => (
+                      <button
+                        key={opt}
+                        type="button"
+                        onClick={() => setManualMarkStatus(opt)}
+                        className={`py-2 rounded-lg text-xs font-semibold border transition ${
+                          manualMarkStatus === opt
+                            ? opt === 'PAID' ? 'bg-emerald-600 text-white border-emerald-600' :
+                              opt === 'LATE' ? 'bg-orange-500 text-white border-orange-500' :
+                              'bg-red-600 text-white border-red-600'
+                            : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                        }`}
+                      >
+                        {opt === 'PAID' ? 'Paid' : opt === 'LATE' ? 'Late' : 'Unpaid'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {(manualMarkStatus === 'PAID' || manualMarkStatus === 'LATE') && (
+                  <div>
+                    <label className="text-xs font-semibold text-slate-600">Paid date</label>
+                    <input
+                      type="date"
+                      value={manualMarkForm.paidDate}
+                      onChange={(e) => setManualMarkForm((p) => ({ ...p, paidDate: e.target.value }))}
+                      className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                    />
+                  </div>
+                )}
+                <div>
+                  <label className="text-xs font-semibold text-slate-600">Admin note</label>
+                  <textarea
+                    value={manualMarkForm.adminNote}
+                    onChange={(e) => setManualMarkForm((p) => ({ ...p, adminNote: e.target.value }))}
+                    rows={2}
+                    placeholder="Reason for manual override"
+                    className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                  />
+                </div>
+                {manualMarkStatus === 'UNPAID' && (
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                    This will reject any existing slip for this student and month.
+                  </div>
+                )}
+                {manualMarkError && (
+                  <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">{manualMarkError}</div>
+                )}
+              </div>
+              <div className="px-5 py-3 border-t border-slate-100 bg-slate-50 flex justify-end gap-2">
+                <button type="button" onClick={() => setManualMarkRow(null)} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-white">Cancel</button>
+                <button
+                  type="button"
+                  onClick={() => void submitManualMark()}
+                  disabled={manualMarkBusy}
+                  className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {manualMarkBusy ? 'Saving...' : 'Save'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body,
       )}
 
       {/* Student watch detail popup */}

@@ -29,6 +29,8 @@ interface StickyDataTableProps<T> {
   emptyMessage?: string;
   /** If provided, column visibility is saved to localStorage under this key. */
   storageKey?: string;
+  /** Optional whole-row click handler. Clicks inside interactive elements (button, a, input, select, label) are ignored. */
+  onRowClick?: (row: T) => void;
 }
 
 const MIN_COL_WIDTH = 60;
@@ -42,6 +44,7 @@ export default function StickyDataTable<T>({
   tableHeight = 'calc(100vh - 320px)',
   emptyMessage = 'No data found',
   storageKey,
+  onRowClick,
 }: StickyDataTableProps<T>) {
   const [isDark, setIsDark] = React.useState(() => document.documentElement.classList.contains('dark'));
   const [page, setPage] = React.useState(0);
@@ -364,8 +367,15 @@ export default function StickyDataTable<T>({
                   role="checkbox"
                   tabIndex={-1}
                   key={getRowId(row)}
+                  onClick={onRowClick ? (e) => {
+                    const target = e.target as HTMLElement;
+                    // Ignore clicks on interactive descendants only (NOT the row itself).
+                    if (target.closest('button, a, input, select, textarea, label')) return;
+                    onRowClick(row);
+                  } : undefined}
                   sx={{
                     backgroundColor: isDark ? '#0f172a' : 'inherit',
+                    cursor: onRowClick ? 'pointer' : 'default',
                     '& td': { py: { xs: 1.6, sm: 1.8, md: 2 } },
                     '&:hover': {
                       backgroundColor: isDark ? '#1e293b' : '#eff6ff',

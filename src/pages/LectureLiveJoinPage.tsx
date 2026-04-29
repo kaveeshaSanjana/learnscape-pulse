@@ -166,8 +166,9 @@ export default function LectureLiveJoinPage() {
   const [stepError, setStepError] = useState('');
   const [useOtherAccount, setUseOtherAccount] = useState(false);
 
-  // Enrollment check for ENROLLED_ONLY lectures
+  // Access check for ENROLLED_ONLY / PAID_ONLY lectures
   const [isEnrolled, setIsEnrolled] = useState<boolean | null>(null);
+  const [accessCheck, setAccessCheck] = useState<{ enrolled: boolean; paid?: boolean; reason?: string; monthName?: string } | null>(null);
 
   type Step = 'idle' | 'signing-in' | 'joining' | 'done';
   const [step, setStep] = useState<Step>('idle');
@@ -201,19 +202,33 @@ export default function LectureLiveJoinPage() {
     setJoinMode('account');
   }, [lecture, user]);
 
-  // Check enrollment for ENROLLED_ONLY lectures once user + lecture are known
+  // Check access for ENROLLED_ONLY / STUDENTS_ONLY / PAID_ONLY lectures once user + lecture are known
   useEffect(() => {
-    if (!lecture || !token || lecture.status !== 'ENROLLED_ONLY') {
+    if (!lecture || !token) {
       setIsEnrolled(null);
+      setAccessCheck(null);
+      return;
+    }
+    const gated = lecture.status === 'ENROLLED_ONLY' || lecture.status === 'STUDENTS_ONLY' || lecture.status === 'PAID_ONLY';
+    if (!gated) {
+      setIsEnrolled(null);
+      setAccessCheck(null);
       return;
     }
     if (!user) {
       setIsEnrolled(null);
+      setAccessCheck(null);
       return;
     }
     api.get(`/lectures/live/${token}/check-access`)
-      .then(r => setIsEnrolled(r.data.enrolled))
-      .catch(() => setIsEnrolled(false));
+      .then(r => {
+        setAccessCheck(r.data);
+        setIsEnrolled(!!r.data.enrolled);
+      })
+      .catch(() => {
+        setAccessCheck({ enrolled: false });
+        setIsEnrolled(false);
+      });
   }, [lecture, user, token]);
 
   // ── Core join call ────────────────────────────────────
@@ -560,19 +575,19 @@ export default function LectureLiveJoinPage() {
                     </div>
                   </div>
 
-                  {/* ENROLLED_ONLY: enrollment check loading */}
-                  {lecture.status === 'ENROLLED_ONLY' && isEnrolled === null && (
+                  {/* Access check loading (ENROLLED_ONLY / STUDENTS_ONLY / PAID_ONLY) */}
+                  {(lecture.status === 'ENROLLED_ONLY' || lecture.status === 'STUDENTS_ONLY' || lecture.status === 'PAID_ONLY') && accessCheck === null && (
                     <div className="flex items-center justify-center gap-2 py-2 text-slate-500 text-sm">
                       <svg className="w-4 h-4 animate-spin text-blue-500" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                       </svg>
-                      Checking enrollment…
+                      Checking access…
                     </div>
                   )}
 
-                  {/* ENROLLED_ONLY: not enrolled — block join */}
-                  {lecture.status === 'ENROLLED_ONLY' && isEnrolled === false && (
+                  {/* ENROLLED_ONLY / STUDENTS_ONLY: not enrolled — block join */}
+                  {(lecture.status === 'ENROLLED_ONLY' || lecture.status === 'STUDENTS_ONLY') && isEnrolled === false && (
                     <div className="px-4 py-4 rounded-2xl bg-amber-50 border-2 border-amber-200 text-center space-y-2">
                       <svg className="w-8 h-8 text-amber-500 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
@@ -582,12 +597,44 @@ export default function LectureLiveJoinPage() {
                     </div>
                   )}
 
+                  {/* PAID_ONLY: not enrolled */}
+                  {lecture.status === 'PAID_ONLY' && accessCheck && accessCheck.reason === 'NOT_ENROLLED' && (
+                    <div className="px-4 py-4 rounded-2xl bg-amber-50 border-2 border-amber-200 text-center space-y-2">
+                      <svg className="w-8 h-8 text-amber-500 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                      </svg>
+                      <p className="font-bold text-amber-800 text-sm">Not enrolled in this class</p>
+                      <p className="text-amber-700 text-xs leading-relaxed">This lecture requires enrollment plus a verified payment. Please enroll first, then complete payment for {accessCheck.monthName || 'this month'}.</p>
+                    </div>
+                  )}
+
+                  {/* PAID_ONLY: enrolled but not paid — show "not paid for month X" */}
+                  {lecture.status === 'PAID_ONLY' && accessCheck && accessCheck.reason === 'NOT_PAID' && (
+                    <div className="px-4 py-4 rounded-2xl bg-rose-50 border-2 border-rose-200 text-center space-y-2">
+                      <svg className="w-8 h-8 text-rose-500 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <p className="font-bold text-rose-800 text-sm">Payment required to join</p>
+                      <p className="text-rose-700 text-xs leading-relaxed">
+                        You have not paid for <span className="font-semibold">{accessCheck.monthName || 'this month'}</span> yet. Please complete the monthly payment to join this lecture.
+                      </p>
+                    </div>
+                  )}
+
                   {stepError && (
                     <div className="px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-600">{stepError}</div>
                   )}
 
-                  {/* Join buttons — only show if not ENROLLED_ONLY, or if enrolled */}
-                  {(lecture.status !== 'ENROLLED_ONLY' || isEnrolled === true) && (
+                  {/* Join buttons — only show if access is granted */}
+                  {(() => {
+                    if (lecture.status === 'ENROLLED_ONLY' || lecture.status === 'STUDENTS_ONLY') {
+                      return isEnrolled === true;
+                    }
+                    if (lecture.status === 'PAID_ONLY') {
+                      return !!(accessCheck && accessCheck.enrolled && accessCheck.paid);
+                    }
+                    return true;
+                  })() && (
                     <>
                       {/* Join with welcome message */}
                       <button

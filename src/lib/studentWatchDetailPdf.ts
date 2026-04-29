@@ -130,10 +130,9 @@ async function loadAvatarImage(rawUrl?: string): Promise<{ dataUrl: string; form
     }
     const targetUrl = new URL(resolved, window.location.origin);
     const isCrossOrigin = targetUrl.origin !== window.location.origin;
-    
     const fetchOpts: RequestInit = { headers: { Accept: 'image/*' } };
     if (!isCrossOrigin) fetchOpts.credentials = 'include';
-    
+
     const response = await fetch(targetUrl.toString(), fetchOpts);
     if (!response.ok) return null;
     const blob = await response.blob();
