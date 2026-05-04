@@ -105,6 +105,7 @@ interface PhysicalMonitorStudent {
   barcodeId: string;
   avatarUrl: string | null;
   statuses: Record<string, PhysicalCellStatus>;
+  checkInTimes: Record<string, string | null>;
 }
 
 interface PhysicalReportGroup {
@@ -1365,6 +1366,19 @@ export default function AdminClassDetail() {
             }
           });
 
+          const rawTimes = item?.checkInTimes && typeof item.checkInTimes === 'object'
+            ? item.checkInTimes as Record<string, unknown>
+            : {};
+          const checkInTimes: Record<string, string | null> = {};
+          Object.entries(rawTimes).forEach(([slotKey, rawTime]) => {
+            if (typeof slotKey !== 'string' || !slotKey.trim()) return;
+            if (typeof rawTime === 'string' && rawTime.trim()) {
+              checkInTimes[slotKey.trim()] = rawTime;
+            } else if (rawTime === null) {
+              checkInTimes[slotKey.trim()] = null;
+            }
+          });
+
           return {
             userId,
             fullName: typeof item?.fullName === 'string' && item.fullName.trim() ? item.fullName.trim() : userId,
@@ -1374,6 +1388,7 @@ export default function AdminClassDetail() {
             barcodeId: typeof item?.barcodeId === 'string' ? item.barcodeId : '',
             avatarUrl: typeof item?.avatarUrl === 'string' && item.avatarUrl.trim() ? item.avatarUrl : null,
             statuses,
+            checkInTimes,
           };
         })
         .filter((item: PhysicalMonitorStudent | null): item is PhysicalMonitorStudent => Boolean(item));
@@ -3575,6 +3590,7 @@ export default function AdminClassDetail() {
 
     const physicalRow = shared.physicalByUser.get(enr.userId);
     const physicalStatuses = physicalRow?.statuses || {};
+    const physicalCheckIns = physicalRow?.checkInTimes || {};
 
     const physicalRows = shared.physicalSlots
       .map((slot: any) => {
@@ -3587,10 +3603,14 @@ export default function AdminClassDetail() {
           sessionTime: typeof slot.sessionTime === 'string' ? slot.sessionTime : '00:00',
         });
 
+        const checkInAt = (status === 'PRESENT' || status === 'LATE')
+          ? (physicalCheckIns[slot.key] || '')
+          : '';
+
         return {
           date: normalizePhysicalDate(slot.date),
           session: sessionLabel,
-          sessionTime: slot.sessionTime || '00:00',
+          sessionTime: checkInAt,
           status,
           weekName: shared.slotKeyToWeekName.get(slot.key) ?? null,
         };

@@ -172,6 +172,18 @@ function fmtSessionTime(raw: string | null | undefined): string {
   return time === '00:00' ? '—' : time;
 }
 
+function fmtAttendanceTime(status: string | null | undefined, rawTime: string | null | undefined): string {
+  const s = (status || '').trim().toUpperCase();
+  if (s !== 'PRESENT' && s !== 'LATE') return '—';
+  if (!rawTime) return '—';
+  const trimmed = rawTime.trim();
+  if (trimmed.includes('T')) {
+    const match = trimmed.match(/T(\d{2}):(\d{2})/);
+    if (match) return `${match[1]}:${match[2]}`;
+  }
+  return fmtSessionTime(trimmed);
+}
+
 function cleanSessionLabel(raw: string | null | undefined): string {
   if (!raw || raw.trim() === '') return '—';
   const s = raw.trim();
@@ -804,8 +816,8 @@ export async function buildStudentClassReportPdf(payload: StudentClassReportPayl
         ? [TABLE_LABELS.week, TABLE_LABELS.date, TABLE_LABELS.session, TABLE_LABELS.time, TABLE_LABELS.status]
         : [TABLE_LABELS.date, TABLE_LABELS.session, TABLE_LABELS.time, TABLE_LABELS.status]],
       body: bodyRows.map((r) => includeWeek
-        ? [safeText(r.weekName), fmtAttendanceDate(r.date), cleanSessionLabel(r.session), fmtSessionTime(r.sessionTime), safeText(r.status)]
-        : [fmtAttendanceDate(r.date), cleanSessionLabel(r.session), fmtSessionTime(r.sessionTime), safeText(r.status)]),
+        ? [safeText(r.weekName), fmtAttendanceDate(r.date), cleanSessionLabel(r.session), fmtAttendanceTime(r.status, r.sessionTime), safeText(r.status)]
+        : [fmtAttendanceDate(r.date), cleanSessionLabel(r.session), fmtAttendanceTime(r.status, r.sessionTime), safeText(r.status)]),
       columnStyles: includeWeek ? {
         0: { cellWidth: 28 },
         1: { cellWidth: 32 },
