@@ -3694,6 +3694,36 @@ export default function AdminClassDetail() {
       };
     });
 
+    const weekStatuses = new Map<string, string[]>();
+    let groupTotal = 0;
+    let groupPresent = 0;
+    let groupLate = 0;
+    let groupAbsent = 0;
+    let groupExcused = 0;
+
+    physicalRows.forEach((r) => {
+      if (r.weekName) {
+        if (!weekStatuses.has(r.weekName)) weekStatuses.set(r.weekName, []);
+        weekStatuses.get(r.weekName)!.push(r.status);
+      } else {
+        groupTotal++;
+        if (r.status === 'PRESENT') groupPresent++;
+        else if (r.status === 'LATE') groupLate++;
+        else if (r.status === 'EXCUSED') groupExcused++;
+        else groupAbsent++;
+      }
+    });
+
+    for (const statuses of weekStatuses.values()) {
+      groupTotal++;
+      if (statuses.includes('PRESENT')) groupPresent++;
+      else if (statuses.includes('LATE')) groupLate++;
+      else if (statuses.includes('EXCUSED')) groupExcused++;
+      else groupAbsent++;
+    }
+
+    const groupPercentage = groupTotal > 0 ? Math.round(((groupPresent + groupLate) / groupTotal) * 100) : 0;
+
     return {
       classInfo: {
         id: cls?.id || id,
@@ -3733,12 +3763,12 @@ export default function AdminClassDetail() {
       },
       physicalAttendance: {
         summary: {
-          total: shared.physicalSlots.length,
-          present: physicalRow?.present || 0,
-          late: physicalRow?.late || 0,
-          absent: physicalRow?.absent || 0,
-          excused: physicalRow?.excused || 0,
-          percentage: physicalRow?.percentage || 0,
+          total: groupTotal,
+          present: groupPresent,
+          late: groupLate,
+          absent: groupAbsent,
+          excused: groupExcused,
+          percentage: groupPercentage,
         },
         rows: physicalRows,
         weekGroupOrder: shared.weekGroupOrder

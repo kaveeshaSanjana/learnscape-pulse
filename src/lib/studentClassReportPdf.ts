@@ -798,7 +798,7 @@ export async function buildStudentClassReportPdf(payload: StudentClassReportPayl
     const pct = summary?.percentage ?? 0;
 
     const physRangeLabel = formatDateRangeLabel(payload.options.physDateRange);
-    drawBannerSection(attendanceBanner, physRangeLabel ? `Attendance rate: ${pct}% · ${physRangeLabel}` : `Attendance rate: ${pct}%`);
+    drawBannerSection(attendanceBanner, '');
 
     drawStatRow([
       { label: 'Total',   value: String(summary?.total   ?? 0), color: C.slate },
