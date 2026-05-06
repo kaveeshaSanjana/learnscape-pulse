@@ -3449,6 +3449,7 @@ export default function AdminClassDetail() {
       physicalSlots: [] as any[],
       physicalByUser: new Map<string, any>(),
       slotKeyToWeekName: new Map<string, string>(),
+      slotKeyToSessionName: new Map<string, string>(),
       weekGroupOrder: [] as string[],
       recordingSessions: [] as any[],
       liveSessionsByUser: new Map<string, any[]>(),
@@ -3532,6 +3533,25 @@ export default function AdminClassDetail() {
           }
         })(),
       );
+
+      // Fetch session definitions to get the latest names (resolves stale names from monitor)
+      jobs.push(
+        (async () => {
+          try {
+            const res = await api.get(`/attendance/class-attendance/class/${id}/sessions`, { params: { limit: 1000 } });
+            const rows = Array.isArray(res.data) ? res.data : [];
+            for (const row of rows) {
+              const session = normalizePhysicalQuickSessionItem(row);
+              if (session) {
+                // Prefer sessionCode if it exists, otherwise use label (which falls back to date/time)
+                shared.slotKeyToSessionName.set(session.key, session.sessionCode || session.label);
+              }
+            }
+          } catch {
+            // Non-fatal: report will fall back to monitor names
+          }
+        })(),
+      );
     }
 
     if (reportIncludeRecordingAttendance) {
@@ -3580,6 +3600,7 @@ export default function AdminClassDetail() {
     physicalSlots: any[];
     physicalByUser: Map<string, any>;
     slotKeyToWeekName: Map<string, string>;
+    slotKeyToSessionName: Map<string, string>;
     weekGroupOrder: string[];
     recordingSessions: any[];
     liveSessionsByUser: Map<string, any[]>;
@@ -3597,7 +3618,8 @@ export default function AdminClassDetail() {
         const status = physicalStatuses[slot.key];
         if (!status) return null;
 
-        const sessionLabel = formatPhysicalSlotLabel({
+        const latestSessionName = shared.slotKeyToSessionName.get(slot.key);
+        const sessionLabel = latestSessionName || formatPhysicalSlotLabel({
           date: asIsoDate(slot.date),
           sessionCode: typeof slot.sessionCode === 'string' ? slot.sessionCode : null,
           sessionTime: typeof slot.sessionTime === 'string' ? slot.sessionTime : '00:00',

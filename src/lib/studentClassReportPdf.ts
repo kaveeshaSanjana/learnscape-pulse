@@ -187,7 +187,11 @@ function fmtAttendanceTime(status: string | null | undefined, rawTime: string | 
 function cleanSessionLabel(raw: string | null | undefined): string {
   if (!raw || raw.trim() === '') return '—';
   const s = raw.trim();
-  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return fmtAttendanceDate(s.slice(0, 10));
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
+    const datePart = fmtAttendanceDate(s.slice(0, 10));
+    const rest = s.slice(10);
+    return `${datePart}${rest}`;
+  }
   const upper = s.toUpperCase();
   if (upper === 'AUTO_CLOSE' || upper === 'AUTO_CLOSED') return 'Auto Closed';
   if (upper === 'AUTO_OPEN'  || upper === 'AUTO_OPENED') return 'Auto Opened';
