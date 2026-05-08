@@ -696,17 +696,18 @@ export default function LectureLiveJoinPage() {
 
                   <form className="space-y-4">
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Email or Phone</label>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Email, Phone, or Institute ID</label>
                       <input
                         type="text"
                         value={identifier}
                         onChange={e => setIdentifier(e.target.value)}
                         required
                         autoComplete="username"
-                        placeholder="you@example.com"
+                        placeholder="you@example.com or TD-202X-XXXX"
                         className="w-full px-4 py-3.5 rounded-xl border-2 border-slate-200 bg-slate-50 text-base text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-400 focus:bg-white transition"
                       />
                     </div>
+
                     <div>
                       <label className="block text-sm font-semibold text-slate-700 mb-2">Password</label>
                       <div className="relative">
