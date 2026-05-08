@@ -5441,7 +5441,8 @@ export default function AdminClassDetail() {
                     <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-4.35-4.35M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z" />
                   </svg>
                   <input
-                    placeholder="Search student, email, phone"
+                    placeholder="Search name, email, phone, or ID"
+
                     value={enrollmentTableSearch}
                     onChange={(event) => setEnrollmentTableSearch(event.target.value)}
                     className="w-full rounded-xl border border-slate-200 px-9 py-2.5 text-sm"

@@ -106,11 +106,12 @@ export default function LoginPage() {
             <CardContent className="p-5 md:p-8 lg:p-10">
               <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
                 <div className="space-y-1.5">
-                  <label htmlFor="identifier" className="text-sm font-medium text-slate-700 block">Email, Phone, or Student ID</label>
+                  <label htmlFor="identifier" className="text-sm font-medium text-slate-700 block">Email, Phone, or Institute ID</label>
                   <Input
                     id="identifier"
                     type="text"
-                    placeholder="Enter email, phone, or student ID"
+                    placeholder="Enter email, phone, or Institute ID"
+
                     value={identifier}
                     onChange={(e) => setIdentifier(e.target.value)}
                     required
