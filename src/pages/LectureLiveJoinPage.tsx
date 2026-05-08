@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../lib/api';
+import { resolveWelcomeMessage } from '../components/WelcomeMessageEditor';
 
 interface LectureInfo {
   id: string;
@@ -349,7 +350,14 @@ export default function LectureLiveJoinPage() {
       {/* Welcome overlay */}
       {showWelcome && joinResult && lecture.welcomeMessage && (
         <WelcomeOverlay
-          html={lecture.welcomeMessage}
+          html={resolveWelcomeMessage(lecture.welcomeMessage, {
+            '{{studentName}}': (user as any)?.profile?.fullName || guestName || 'Guest',
+            '{{month}}': lecture?.month?.name || '',
+            '{{date}}': new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }),
+            '{{className}}': lecture?.month?.class?.name || '',
+            '{{recordingTitle}}': lecture?.title || '',
+            '{{teacherName}}': 'Sir',
+          })}
           sessionLink={joinResult.sessionLink}
           onSkip={() => setShowWelcome(false)}
           avatarUrl={(user as any)?.profile?.avatarUrl ?? null}

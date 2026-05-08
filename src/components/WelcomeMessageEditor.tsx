@@ -216,17 +216,47 @@ export default function WelcomeMessageEditor({ value, onChange }: WelcomeMessage
  */
 export function resolveWelcomeMessage(html: string, vars: Record<string, string>): string {
   let resolved = html;
-  // Replace {{variable}} text inside data-variable spans with actual values
+
+  // 1. Replace data-variable spans (injected by the editor)
+  // These use the exact key (e.g. {{studentName}})
   for (const [key, val] of Object.entries(vars)) {
-    // Replace the token spans with just the value text (keeping styling)
     const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    // Replace data-variable badge content
     resolved = resolved.replace(
       new RegExp(`(<span[^>]*data-variable="${escaped}"[^>]*>)[^<]*(</span>)`, 'g'),
       `$1${val}$2`
     );
-    // Also replace raw text placeholders
+  }
+
+  // 2. Replace raw text placeholders with flexibility (case-insensitive, single/double braces)
+  const mappings: Record<string, string> = {
+    'studentName': vars['{{studentName}}'],
+    'studentname': vars['{{studentName}}'],
+    'studenname':  vars['{{studentName}}'], // Support the specific typo mentioned by user
+    'month':       vars['{{month}}'],
+    'date':        vars['{{date}}'],
+    'className':   vars['{{className}}'],
+    'classname':   vars['{{className}}'],
+    'recordingTitle': vars['{{recordingTitle}}'],
+    'recordingtitle': vars['{{recordingTitle}}'],
+    'lectureTitle':   vars['{{recordingTitle}}'],
+    'lecturetitle':   vars['{{recordingTitle}}'],
+    'teacherName':    vars['{{teacherName}}'],
+    'teachername':    vars['{{teacherName}}'],
+  };
+
+  for (const [key, val] of Object.entries(mappings)) {
+    if (val === undefined) continue;
+    // Matches {{key}} or {key} case-insensitively
+    const pattern = new RegExp(`\\{\\{?${key}\\}?\\}`, 'gi');
+    resolved = resolved.replace(pattern, val);
+  }
+
+  // 3. Fallback for any other keys in vars not covered above
+  for (const [key, val] of Object.entries(vars)) {
+    const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     resolved = resolved.replace(new RegExp(escaped, 'g'), val);
   }
+
   return resolved;
 }
+
