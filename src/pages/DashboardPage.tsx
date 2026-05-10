@@ -4,20 +4,16 @@ import { useAuth } from '../context/AuthContext';
 import { useInstitute } from '../context/InstituteContext';
 import api from '../lib/api';
 import { getInstitutePath } from '../lib/instituteRoutes';
-import CropImageInput from '../components/CropImageInput';
 
 export default function DashboardPage() {
-  const { user, refreshMe } = useAuth();
+  const { user } = useAuth();
   const { selected } = useInstitute();
   const { instituteId: routeInstituteId } = useParams();
   const [classes, setClasses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [uploadingAvatar, setUploadingAvatar] = useState(false);
-  const [avatarUploadError, setAvatarUploadError] = useState('');
-  const [avatarUploadSuccess, setAvatarUploadSuccess] = useState('');
 
   useEffect(() => {
-    api.get('/classes').then(r => setClasses(r.data.slice(0, 6))).catch(() => {}).finally(() => setLoading(false));
+    api.get('/classes').then(r => setClasses(r.data.slice(0, 6))).catch(() => { }).finally(() => setLoading(false));
   }, []);
 
   const name = user?.profile?.fullName?.split(' ')[0] || 'Student';
@@ -28,36 +24,6 @@ export default function DashboardPage() {
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good Morning' : hour < 17 ? 'Good Afternoon' : 'Good Evening';
   const currentInstituteId = routeInstituteId || selected?.id || null;
-  const needsFirstAvatarUpload = user?.role === 'STUDENT' && !user?.profile?.avatarUrl;
-
-  const handleFirstAvatarUpload = async (file: File) => {
-    setUploadingAvatar(true);
-    setAvatarUploadError('');
-    setAvatarUploadSuccess('');
-
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      await api.post('/users/me/avatar', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-
-      await refreshMe();
-      setAvatarUploadSuccess('Profile image uploaded successfully.');
-    } catch (error: any) {
-      const message = error?.response?.data?.message;
-      if (Array.isArray(message)) {
-        setAvatarUploadError(message.join(', '));
-      } else {
-        setAvatarUploadError(typeof message === 'string' ? message : 'Failed to upload profile image.');
-      }
-    } finally {
-      setUploadingAvatar(false);
-    }
-  };
-
-
 
   return (
     <div className="w-full space-y-6 animate-fade-in">
@@ -96,28 +62,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {needsFirstAvatarUpload && (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 sm:p-5">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 className="text-sm font-semibold text-amber-900">Add Your Profile Image</h2>
-              <p className="text-xs text-amber-800/80 mt-1">
-                Upload your first profile image now. After this, image changes can only be done by admin.
-              </p>
-            </div>
-            <CropImageInput
-              onFile={handleFirstAvatarUpload}
-              loading={uploadingAvatar}
-              label="Upload My Image"
-              cropTitle="Crop Profile Image"
-              aspectRatio={1}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-amber-300 bg-amber-100 text-amber-900 text-xs font-semibold hover:bg-amber-200 transition cursor-pointer"
-            />
-          </div>
-          {avatarUploadError && <p className="mt-2 text-xs font-medium text-red-700">{avatarUploadError}</p>}
-          {avatarUploadSuccess && <p className="mt-2 text-xs font-medium text-emerald-700">{avatarUploadSuccess}</p>}
-        </div>
-      )}
+
 
       {/* Quick Actions */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
@@ -151,7 +96,7 @@ export default function DashboardPage() {
         </div>
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[1,2,3].map(i => <div key={i} className="rounded-2xl p-5 h-32 skeleton" />)}
+            {[1, 2, 3].map(i => <div key={i} className="rounded-2xl p-5 h-32 skeleton" />)}
           </div>
         ) : classes.length === 0 ? (
           <div className="bg-[hsl(var(--card))] rounded-2xl border border-[hsl(var(--border))] p-12 text-center shadow-sm">
